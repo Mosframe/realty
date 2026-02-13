@@ -27,15 +27,15 @@ const mimeTypes = {
 
 // Get mock data key based on request path
 function getMockDataKey(pathname, query) {
-    if (pathname === '/regions/list') {
+    if (pathname === '/api/regions/list') {
         return `regions_${query.cortarNo}`;
-    } else if (pathname === '/regions/complexes') {
+    } else if (pathname === '/api/regions/complexes') {
         return `complexes_${query.cortarNo}`;
-    } else if (pathname.match(/^\/complexes\/\d+$/)) {
-        const complexNo = pathname.split('/')[2];
+    } else if (pathname.match(/^\/api\/complexes\/\d+$/)) {
+        const complexNo = pathname.split('/')[3];
         return `complex_${complexNo}`;
-    } else if (pathname.match(/^\/complexes\/\d+\/prices\/real$/)) {
-        const complexNo = pathname.split('/')[2];
+    } else if (pathname.match(/^\/api\/complexes\/\d+\/prices\/real$/)) {
+        const complexNo = pathname.split('/')[3];
         return `prices_${complexNo}_${query.areaNo}`;
     }
     return null;
@@ -75,7 +75,7 @@ function proxyAPIRequest(apiPath, res) {
         method: 'GET',
         headers: {
             'accept': '*/*',
-            'accept-encoding': 'gzip, deflate, br, zstd',
+            'accept-encoding': 'identity',
             'accept-language': 'ko;q=0.7',
             'authorization': `Bearer ${BEARER_TOKEN}`,
             'cache-control': 'no-cache',
@@ -120,11 +120,18 @@ function proxyAPIRequest(apiPath, res) {
 
     proxyReq.on('error', (err) => {
         console.error('Proxy error:', err);
-        res.writeHead(500, { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        });
-        res.end(JSON.stringify({ error: err.message }));
+        if (!res.headersSent) {
+            res.writeHead(500, { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ error: err.message }));
+        }
+    });
+
+    proxyReq.setTimeout(30000, () => {
+        console.error('Proxy request timed out');
+        proxyReq.destroy(new Error('Request timed out'));
     });
 
     proxyReq.end();
