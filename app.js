@@ -32,7 +32,18 @@ async function fetchAPI(url) {
         const response = await fetch(url);
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            let errorDetail = `HTTP ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorDetail = `[${errorData.statusCode}] ${errorData.message}`;
+                console.error('Server Error:', errorData);
+            } catch (e) {
+                const text = await response.text();
+                errorDetail = `[${response.status}] ${text}`;
+                console.error('Server Error:', text);
+            }
+            showError(`서버 오류: ${errorDetail}`);
+            throw new Error(errorDetail);
         }
 
         return await response.json();

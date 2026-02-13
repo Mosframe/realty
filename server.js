@@ -44,17 +44,17 @@ function getMockDataKey(pathname, query) {
 // Proxy API requests to Naver Land or return mock data
 function proxyAPIRequest(apiPath, res) {
     console.log(`Proxying request: ${apiPath}`);
-    
+
     // Parse URL to extract query parameters
     const parsedUrl = url.parse(apiPath, true);
     const pathname = parsedUrl.pathname;
     const query = parsedUrl.query;
-    
+
     // Try to use mock data if enabled
     if (USE_MOCK_DATA) {
         const mockKey = getMockDataKey(pathname, query);
         console.log(`Looking for mock data key: ${mockKey}`);
-        
+
         if (mockKey && mockData[mockKey]) {
             console.log(`Using mock data for: ${mockKey}`);
             res.writeHead(200, {
@@ -67,7 +67,7 @@ function proxyAPIRequest(apiPath, res) {
             return;
         }
     }
-    
+
     // Fall back to real API call
     const options = {
         hostname: API_BASE_URL,
@@ -92,12 +92,12 @@ function proxyAPIRequest(apiPath, res) {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
         }
     };
-    
-    console.log({hostname:options.hostname, path:options.path,auth:options.headers.authorization});
+
+    console.log({ hostname: options.hostname, path: options.path, auth: options.headers.authorization });
 
     const proxyReq = https.request(options, (proxyRes) => {
         console.log(`Response status: ${proxyRes.statusCode}`);
-        
+
         let data = [];
 
         proxyRes.on('data', (chunk) => {
@@ -107,7 +107,25 @@ function proxyAPIRequest(apiPath, res) {
         proxyRes.on('end', () => {
             const buffer = Buffer.concat(data);
             console.log(`Response received: ${buffer.length} bytes`);
-            
+
+            // If upstream returned an error, include details
+            if (proxyRes.statusCode >= 400) {
+                const bodyStr = buffer.toString('utf-8');
+                console.error(`API Error [${proxyRes.statusCode}]: ${bodyStr}`);
+                res.writeHead(proxyRes.statusCode, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+                });
+                res.end(JSON.stringify({
+                    error: true,
+                    statusCode: proxyRes.statusCode,
+                    message: bodyStr
+                }));
+                return;
+            }
+
             res.writeHead(proxyRes.statusCode, {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
@@ -121,11 +139,11 @@ function proxyAPIRequest(apiPath, res) {
     proxyReq.on('error', (err) => {
         console.error('Proxy error:', err);
         if (!res.headersSent) {
-            res.writeHead(500, { 
+            res.writeHead(500, {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             });
-            res.end(JSON.stringify({ error: err.message }));
+            res.end(JSON.stringify({ error: true, statusCode: 500, message: err.message }));
         }
     });
 
