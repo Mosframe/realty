@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>부동산 실거래가 랭킹</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
         <h1>부동산 실거래가 랭킹</h1>
-        
+
         <div class="controls">
             <div class="form-group">
                 <label for="sido">시도</label>
@@ -17,31 +19,52 @@
                     <option value="">시도 선택</option>
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="district">시/군/구</label>
                 <select id="district" class="form-control" disabled>
                     <option value="">시/군/구 선택</option>
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="dong">동</label>
                 <select id="dong" class="form-control" disabled>
                     <option value="">동 선택</option>
                 </select>
             </div>
-            
+
+            <div class="form-group pyeong-filter">
+                <label>평형 범위</label>
+                <div class="pyeong-range">
+                    <input type="number" id="pyeongMin" class="form-control pyeong-input" placeholder="최소" min="1"
+                        max="99">
+                    <span class="pyeong-separator">~</span>
+                    <input type="number" id="pyeongMax" class="form-control pyeong-input" placeholder="최대" min="1"
+                        max="99">
+                    <span class="pyeong-unit">평</span>
+                </div>
+            </div>
+
+            <div class="form-group date-filter">
+                <label>거래일자 범위</label>
+                <div class="date-range">
+                    <input type="date" id="dateFrom" class="form-control date-input">
+                    <span class="pyeong-separator">~</span>
+                    <input type="date" id="dateTo" class="form-control date-input">
+                </div>
+            </div>
+
             <button id="searchBtn" class="btn btn-primary" disabled>조회</button>
         </div>
-        
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p>데이터를 불러오는 중...</p>
         </div>
-        
+
         <div id="error" class="error" style="display: none;"></div>
-        
+
         <div id="results">
             <h2>실거래가 현황</h2>
             <table id="resultsTable" class="table">
@@ -63,7 +86,8 @@
             </table>
         </div>
     </div>
-    
+
     <script src="app.js"></script>
 </body>
+
 </html>

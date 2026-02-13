@@ -114,8 +114,13 @@ h2 {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .error {
@@ -169,30 +174,74 @@ h2 {
 }
 
 .rank-1 {
-    background-color: #ffd700 !important;
+    background-color: #e8f5e9 !important;
 }
 
 .rank-2 {
-    background-color: #c0c0c0 !important;
+    background-color: #e3f2fd !important;
 }
 
 .rank-3 {
-    background-color: #cd7f32 !important;
+    background-color: #fff3e0 !important;
+}
+
+.pyeong-filter {
+    min-width: 200px;
+}
+
+.date-filter {
+    min-width: 280px;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-input {
+    width: 140px !important;
+    min-width: 130px;
+    text-align: center;
+}
+
+.pyeong-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pyeong-input {
+    width: 80px !important;
+    min-width: 70px;
+    text-align: center;
+}
+
+.pyeong-separator {
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+}
+
+.pyeong-unit {
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
     .controls {
         flex-direction: column;
     }
-    
+
     .form-group {
         width: 100%;
     }
-    
+
     .table {
         font-size: 12px;
     }
-    
+
     .table th,
     .table td {
         padding: 8px;
