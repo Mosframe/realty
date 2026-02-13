@@ -9,6 +9,10 @@
     },
     "rewrites": [
         {
+            "source": "/api/edge/(.*)",
+            "destination": "/api/edge/[...path]"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/[...path]"
         }

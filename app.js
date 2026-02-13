@@ -1,5 +1,7 @@
 // API Configuration
-const API_BASE_URL = '/api';
+// Use Naver Land API directly from browser (user's own IP, no cloud IP blocking)
+const API_BASE_URL = 'https://new.land.naver.com/api';
+const USE_PROXY = false; // Set to true to use local proxy server (/api)
 
 // State
 let currentCortarNo = null;
@@ -27,13 +29,23 @@ const dateToInput = document.getElementById('dateTo');
 })();
 
 // Helper function to make API calls with timeout and retry
-async function fetchAPI(url, retries = 2) {
+async function fetchAPI(apiUrl, retries = 2) {
+    // If using proxy, rewrite URL to go through local server
+    const url = USE_PROXY ? apiUrl.replace('https://new.land.naver.com/api', '/api') : apiUrl;
+
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-            const response = await fetch(url, { signal: controller.signal });
+            const fetchOptions = { signal: controller.signal };
+
+            // When calling Naver API directly, we need credentials for same-site cookies
+            if (!USE_PROXY) {
+                fetchOptions.credentials = 'omit';
+            }
+
+            const response = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
 
             if (!response.ok) {
