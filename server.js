@@ -5,7 +5,7 @@ const path = require('path');
 const url = require('url');
 const mockData = require('./mockData');
 
-const PORT = 443;
+const PORT = 3000;
 const API_BASE_URL = 'new.land.naver.com';
 // Note: In production, this token should be stored in environment variables and refreshed regularly
 // The token expires after a certain period and needs to be regenerated from the Naver Land API
