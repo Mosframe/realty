@@ -39,9 +39,21 @@ node server.js
 http://localhost:3000
 ```
 
-**참고**: 기본적으로 서버는 mock 데이터를 사용합니다. 실제 Naver Land API를 사용하려면:
-- 유효한 Bearer 토큰을 발급받아 환경 변수로 설정
-- `server.js`에서 `USE_MOCK_DATA`를 `false`로 변경
+**참고**: 
+- 서버는 실제 Naver Land API를 호출합니다 (`USE_MOCK_DATA = false`)
+- 유효한 Bearer 토큰을 환경 변수로 설정해야 합니다
+- 프론트엔드는 `config.js`에서 API 서버 URL을 설정합니다
+
+## API 설정
+
+프론트엔드에서 백엔드 API 서버 URL 설정:
+
+`config.js` 파일을 수정하여 배포된 서버 URL로 변경:
+```javascript
+const CONFIG = {
+    API_BASE_URL: 'https://your-service-name.onrender.com/api'
+};
+```
 
 ## 프로젝트 구조
 
@@ -49,8 +61,10 @@ http://localhost:3000
 realty/
 ├── index.html      # 메인 HTML 페이지
 ├── style.css       # 스타일시트
-├── app.js          # 프론트엔드 JavaScript
+├── app.js          # 프론트엔드 JavaScript (Mock 데이터 제거됨)
+├── config.js       # API 엔드포인트 설정
 ├── server.js       # Node.js 프록시 서버
+├── mockData.js     # Mock 데이터 (서버용)
 ├── package.json    # 프로젝트 설정
 └── README.md       # 프로젝트 문서
 ```
@@ -78,13 +92,22 @@ realty/
 
 ## 배포 (Deployment)
 
-### GitHub Pages (프론트엔드만)
-현재 프론트엔드는 GitHub Pages에서 호스팅되며, mock 데이터를 사용하여 백엔드 없이도 동작합니다.
+### 현재 상태 ⚠️
+프론트엔드는 **Mock 데이터가 제거**되었으며, 반드시 백엔드 서버에 연결해야 동작합니다.
 
+### GitHub Pages (프론트엔드)
 **접속 URL**: https://mosframe.github.io/realty/
 
-### 백엔드 배포 (선택사항)
-실시간 Naver Land API 데이터를 사용하려면 `server.js` 백엔드를 별도로 배포해야 합니다.
+**설정 필요**:
+`config.js` 파일에서 배포된 백엔드 서버 URL을 설정하세요:
+```javascript
+const CONFIG = {
+    API_BASE_URL: 'https://your-service-name.onrender.com/api'
+};
+```
+
+### 백엔드 배포 (필수)
+실시간 Naver Land API 데이터를 사용하려면 `server.js` 백엔드를 배포해야 합니다.
 
 **무료 호스팅 옵션**:
 - **Render.com** (추천) - 완전 무료, 간단한 설정
@@ -93,15 +116,19 @@ realty/
 - **Glitch.com** - 초보자 친화적
 - **Fly.io** - 전 세계 엣지 네트워크
 
-📖 **상세한 배포 가이드**: [DEPLOYMENT.md](DEPLOYMENT.md) 문서를 참조하세요.
+📖 **상세한 배포 가이드**:
+- [RENDER_SETUP.md](RENDER_SETUP.md) - Render.com 배포 및 설정 가이드
+- [DEPLOYMENT.md](DEPLOYMENT.md) - 다양한 플랫폼 배포 가이드
 
 ### 빠른 배포 (Render.com)
 1. [Render.com](https://render.com) 회원가입
 2. GitHub 저장소 연결
 3. "New Web Service" 선택
 4. Start Command: `node server.js`
-5. 환경 변수 `NAVER_LAND_TOKEN` 설정
+5. 환경 변수 설정:
+   - `NAVER_LAND_TOKEN`: 네이버 API 토큰
 6. 배포 완료!
+7. `config.js`에 배포된 URL 설정
 
 ## 라이선스
 
