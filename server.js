@@ -95,7 +95,7 @@ function proxyAPIRequest(apiPath, res) {
         }
     };
     
-    console.log({hostname:options.hostname, path:options.path,authorization:options.authorization});
+    console.log({hostname:options.hostname, path:options.path,auth:options.headers.authorization});
 
     const proxyReq = https.request(options, (proxyRes) => {
         console.log(`Response status: ${proxyRes.statusCode}`);
