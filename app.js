@@ -26,30 +26,50 @@ const dateToInput = document.getElementById('dateTo');
     dateFromInput.value = oneMonthAgo.toISOString().split('T')[0];
 })();
 
-// Helper function to make API calls
-async function fetchAPI(url) {
-    try {
-        const response = await fetch(url);
+// Helper function to make API calls with timeout and retry
+async function fetchAPI(url, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        if (!response.ok) {
-            let errorDetail = `HTTP ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorDetail = `[${errorData.statusCode}] ${errorData.message}`;
-                console.error('Server Error:', errorData);
-            } catch (e) {
-                const text = await response.text();
-                errorDetail = `[${response.status}] ${text}`;
-                console.error('Server Error:', text);
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                let errorDetail = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorDetail = `[${errorData.statusCode}] ${errorData.message}`;
+                    console.error('Server Error:', errorData);
+                } catch (e) {
+                    const text = await response.text();
+                    errorDetail = `[${response.status}] ${text}`;
+                    console.error('Server Error:', text);
+                }
+                // Retry on 5xx errors
+                if (response.status >= 500 && attempt < retries) {
+                    console.warn(`Retrying (${attempt + 1}/${retries})... ${url}`);
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
+                showError(`서버 오류: ${errorDetail}`);
+                throw new Error(errorDetail);
             }
-            showError(`서버 오류: ${errorDetail}`);
-            throw new Error(errorDetail);
-        }
 
-        return await response.json();
-    } catch (err) {
-        console.error('API Error:', err);
-        throw err;
+            return await response.json();
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.warn(`Request timeout (${attempt + 1}/${retries + 1}): ${url}`);
+                if (attempt < retries) {
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
+                showError('요청 시간이 초과되었습니다. 다시 시도해주세요.');
+            }
+            console.error('API Error:', err);
+            throw err;
+        }
     }
 }
 
