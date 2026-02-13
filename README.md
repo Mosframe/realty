@@ -39,6 +39,10 @@
 4. Branch를 "main" (또는 현재 브랜치) 선택
 5. 저장 후 배포된 URL 확인
 
+**참고**: 그래프 기능은 Chart.js CDN을 사용합니다. CDN 접근이 차단된 환경에서는 그래프 기능이 작동하지 않을 수 있습니다. 이 경우 Chart.js를 로컬에 다운로드하여 사용하거나 다른 CDN을 사용할 수 있습니다.
+
+**Note**: The graph feature uses the Chart.js CDN. If CDN access is blocked in your environment, the chart feature may not work. In this case, you can download Chart.js locally or use an alternative CDN.
+
 ## 기술 스택 (Technology Stack)
 
 - HTML5

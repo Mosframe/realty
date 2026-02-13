@@ -73,7 +73,7 @@ const sampleApartmentData = [
     { id: 46, name: '하남미사강변', region: '경기 하남시 망월동', pyeong: 31, price: 118000, date: '2024-02-08', change: 3.5 },
     { id: 47, name: '위례신도시푸르지오', region: '경기 성남시 수정구 창곡동', pyeong: 27, price: 112000, date: '2024-02-07', change: 2.8 },
     { id: 48, name: '광명역센트럴', region: '경기 광명시 광명동', pyeong: 30, price: 108000, date: '2024-02-05', change: 2.1 },
-    { id: 49, name: '일산호수공원자이', region: '경기 고양시 일산동구 장항동', pyeeng: 35, price: 135000, date: '2024-02-06', change: 2.9 },
+    { id: 49, name: '일산호수공원자이', region: '경기 고양시 일산동구 장항동', pyeong: 35, price: 135000, date: '2024-02-06', change: 2.9 },
     { id: 50, name: '파주운정신도시롯데캐슬', region: '경기 파주시 교하읍', pyeong: 28, price: 95000, date: '2024-02-04', change: 1.4 },
 ];
 
