@@ -1,6 +1,6 @@
 // API Configuration
 // You can change this to your Render.com URL or use config.js
-const API_BASE_URL = typeof CONFIG !== 'undefined' ? CONFIG.API_BASE_URL : 'https://realty-api.onrender.com/api';
+const API_BASE_URL = typeof CONFIG !== 'undefined' ? CONFIG.API_BASE_URL : 'https://realty-kr68.onrender.com/api';
 
 // State
 let currentCortarNo = null;

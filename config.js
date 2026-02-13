@@ -5,7 +5,7 @@ const CONFIG = {
     // API_BASE_URL: 'https://your-app-name.onrender.com/api'
     // For local development:
     // API_BASE_URL: 'http://localhost:3000/api'
-    API_BASE_URL: 'https://realty-api.onrender.com/api'
+    API_BASE_URL: 'https://realty-kr68.onrender.com/api'
 };
 
 // Export configuration
