@@ -166,6 +166,8 @@ async function getRealPrices(complexNo, areaNo) {
 }
 
 // Calculate current price (highest in last 3 months)
+// Note: dealPrice from the API is in units of 만원 (10,000 won)
+// For example: dealPrice: 160000 means 160000만원 = 16억원
 function calculateCurrentPrice(realPriceData) {
     if (!realPriceData || !realPriceData.realPriceOnMonthList) {
         return null;
@@ -186,7 +188,9 @@ function calculateCurrentPrice(realPriceData) {
                 
                 // Check if within last 3 months
                 if (tradeDate >= threeMonthsAgo) {
-                    const dealPrice = price.dealPrice; // dealPrice is already in units of 만원 (10,000 won)
+                    // dealPrice is in units of 만원 (10,000 won) from the Naver Land API
+                    // No conversion needed - we use it directly for calculations
+                    const dealPrice = price.dealPrice;
                     
                     if (!highestPrice || dealPrice > highestPrice) {
                         highestPrice = dealPrice;

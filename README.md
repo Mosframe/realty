@@ -22,15 +22,26 @@ git clone https://github.com/Mosframe/realty.git
 cd realty
 ```
 
-2. 서버 실행
+2. 환경 변수 설정 (선택사항)
+```bash
+cp .env.example .env
+# .env 파일을 편집하여 필요한 설정을 변경합니다
+# 특히 NAVER_LAND_TOKEN을 실제 토큰으로 업데이트해야 합니다
+```
+
+3. 서버 실행
 ```bash
 node server.js
 ```
 
-3. 브라우저에서 접속
+4. 브라우저에서 접속
 ```
 http://localhost:3000
 ```
+
+**참고**: 기본적으로 서버는 mock 데이터를 사용합니다. 실제 Naver Land API를 사용하려면:
+- 유효한 Bearer 토큰을 발급받아 환경 변수로 설정
+- `server.js`에서 `USE_MOCK_DATA`를 `false`로 변경
 
 ## 프로젝트 구조
 
@@ -68,3 +79,9 @@ realty/
 ## 라이선스
 
 MIT License
+
+## 보안 고려사항
+
+- API 토큰은 환경 변수로 관리하며, 소스 코드에 하드코딩하지 않습니다
+- 프로덕션 환경에서는 토큰 갱신 로직을 구현해야 합니다
+- `.env` 파일은 `.gitignore`에 포함되어 있으며 버전 관리에서 제외됩니다
