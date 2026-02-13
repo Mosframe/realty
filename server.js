@@ -73,6 +73,7 @@ function proxyAPIRequest(apiPath, res) {
         hostname: API_BASE_URL,
         path: apiPath,
         method: 'GET',
+        timeout: 30000, // 30 second timeout
         headers: {
             'accept': '*/*',
             'accept-encoding': 'gzip, deflate, br, zstd',
@@ -115,6 +116,20 @@ function proxyAPIRequest(apiPath, res) {
             });
             res.end(buffer);
         });
+    });
+
+    // Handle request timeout
+    proxyReq.on('timeout', () => {
+        console.error('Request timeout - no response received within 30 seconds');
+        proxyReq.destroy();
+        res.writeHead(504, { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({ 
+            error: 'Gateway Timeout',
+            message: 'The external API did not respond in time'
+        }));
     });
 
     proxyReq.on('error', (err) => {
