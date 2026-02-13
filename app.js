@@ -1,6 +1,9 @@
 // Main application JavaScript
 // 메인 애플리케이션 JavaScript
 
+// Constants
+const MAX_LABEL_LENGTH = 15;
+
 class ApartmentRankingApp {
     constructor() {
         this.tables = [];
@@ -334,7 +337,7 @@ class RankingTable {
         }
         
         // Prepare chart data
-        const labels = selectedData.map(apt => apt.name.length > 15 ? apt.name.substring(0, 15) + '...' : apt.name);
+        const labels = selectedData.map(apt => apt.name.length > MAX_LABEL_LENGTH ? apt.name.substring(0, MAX_LABEL_LENGTH) + '...' : apt.name);
         const prices = selectedData.map(apt => apt.price);
         const changes = selectedData.map(apt => apt.change);
         
