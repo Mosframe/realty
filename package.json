@@ -1,0 +1,17 @@
+{
+  "name": "realty",
+  "version": "1.0.0",
+  "description": "부동산 실거래가 랭킹 사이트",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "realty",
+    "real-estate",
+    "naver-land"
+  ],
+  "author": "",
+  "license": "MIT"
+}
