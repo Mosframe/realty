@@ -7,7 +7,7 @@ const zlib = require('zlib'); // 압축 해제를 위해 추가
 const mockData = require('./mockData');
 
 const PORT = 3000;
-const API_BASE_URL = 'new.land.naver.com';
+const API_BASE_URL = 'new.land.naver.com/api';
 const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 const USE_MOCK_DATA = false;
 
