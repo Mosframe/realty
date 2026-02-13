@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아파트 실거래가 순위 - Apartment Real Transaction Price Rankings</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>아파트 실거래가 순위</h1>
+            <p class="subtitle">Apartment Real Transaction Price Rankings</p>
+        </header>
+
+        <div class="controls-panel">
+            <button id="addRankingTable" class="btn btn-primary">+ 순위표 추가 (Add Ranking Table)</button>
+        </div>
+
+        <div id="rankingTablesContainer"></div>
+    </div>
+
+    <!-- Template for ranking table -->
+    <template id="rankingTableTemplate">
+        <div class="ranking-table-card">
+            <div class="card-header">
+                <h2>순위표 <span class="table-number"></span></h2>
+                <button class="btn-close" title="Close">×</button>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label>지역 선택 (Region):</label>
+                    <div class="region-filters">
+                        <select class="filter-select region-nationwide">
+                            <option value="">전국 (Nationwide)</option>
+                            <option value="서울">서울 (Seoul)</option>
+                            <option value="부산">부산 (Busan)</option>
+                            <option value="대구">대구 (Daegu)</option>
+                            <option value="인천">인천 (Incheon)</option>
+                            <option value="광주">광주 (Gwangju)</option>
+                            <option value="대전">대전 (Daejeon)</option>
+                            <option value="울산">울산 (Ulsan)</option>
+                            <option value="세종">세종 (Sejong)</option>
+                            <option value="경기">경기 (Gyeonggi)</option>
+                        </select>
+                        <select class="filter-select region-city" disabled>
+                            <option value="">시/구 선택 (Select City/District)</option>
+                        </select>
+                        <select class="filter-select region-district" disabled>
+                            <option value="">구 선택 (Select District)</option>
+                        </select>
+                        <select class="filter-select region-dong" disabled>
+                            <option value="">동 선택 (Select Dong)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>평형대 (Size in Pyeong):</label>
+                    <div class="pyeong-filters">
+                        <input type="number" class="filter-input pyeong-min" placeholder="최소 (Min)" min="0" value="20">
+                        <span>~</span>
+                        <input type="number" class="filter-input pyeong-max" placeholder="최대 (Max)" min="0" value="30">
+                        <span class="hint">평 (pyeong)</span>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>거래일자 (Transaction Date):</label>
+                    <div class="date-filters">
+                        <input type="date" class="filter-input date-start">
+                        <span>~</span>
+                        <input type="date" class="filter-input date-end">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>순위 개수 (Ranking Count):</label>
+                    <select class="filter-select ranking-count">
+                        <option value="10">10개</option>
+                        <option value="20">20개</option>
+                        <option value="30" selected>30개</option>
+                        <option value="50">50개</option>
+                        <option value="100">100개</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn btn-primary btn-search">검색 (Search)</button>
+                    <button class="btn btn-secondary btn-reset">초기화 (Reset)</button>
+                </div>
+            </div>
+
+            <div class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>데이터를 불러오는 중... (Loading data...)</p>
+            </div>
+
+            <div class="results-section">
+                <div class="results-header">
+                    <h3>검색 결과 (Search Results)</h3>
+                    <div class="view-toggle">
+                        <button class="btn-view btn-view-table active" data-view="table">표 (Table)</button>
+                        <button class="btn-view btn-view-chart" data-view="chart">그래프 (Chart)</button>
+                    </div>
+                </div>
+
+                <div class="table-view">
+                    <table class="ranking-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" class="checkbox-all"></th>
+                                <th>순위 (Rank)</th>
+                                <th>아파트명 (Apartment)</th>
+                                <th>지역 (Region)</th>
+                                <th>평형 (Pyeong)</th>
+                                <th>거래가격 (Price)</th>
+                                <th>거래일자 (Date)</th>
+                                <th>전월대비 (Change)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="ranking-tbody">
+                            <tr class="no-data">
+                                <td colspan="8">검색 버튼을 눌러 데이터를 조회하세요. (Click search to load data)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-view" style="display: none;">
+                    <canvas class="ranking-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
