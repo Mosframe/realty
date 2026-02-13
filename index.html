@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 - Realty</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .property-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .property-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+
+        .property-info {
+            padding: 1.5rem;
+        }
+
+        .property-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .property-location {
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .property-price {
+            font-size: 1.5rem;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .property-details {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 0.7rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .no-properties {
+            text-align: center;
+            padding: 3rem;
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🏠 부동산</h1>
+            <p class="subtitle">GitHub Pages로 공개되는 부동산 정보 사이트</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="controls">
+            <h2 style="margin-bottom: 1rem;">매물 추가</h2>
+            <div class="control-group">
+                <input type="text" id="propertyTitle" placeholder="매물명" style="flex: 1; min-width: 200px;">
+                <input type="text" id="propertyLocation" placeholder="위치" style="flex: 1; min-width: 150px;">
+                <input type="text" id="propertyPrice" placeholder="가격 (억)" style="width: 120px;">
+                <button class="btn" onclick="addProperty()">매물 추가</button>
+            </div>
+        </div>
+
+        <div id="propertyCount" style="font-size: 1.1rem; margin-bottom: 1rem; color: #555;">
+            총 <strong id="count">0</strong>개의 매물
+        </div>
+
+        <div class="property-grid" id="propertyGrid">
+            <div class="no-properties">매물을 추가해주세요</div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Realty. MIT License.</p>
+            <p style="margin-top: 0.5rem; opacity: 0.8;">HTML과 JavaScript로만 구성된 GitHub Pages</p>
+        </div>
+    </footer>
+
+    <script>
+        // 매물 데이터 저장
+        let properties = [];
+
+        // 샘플 데이터 초기화
+        function initSampleData() {
+            properties = [
+                {
+                    title: '강남 오피스텔',
+                    location: '서울 강남구',
+                    price: '5.2',
+                    rooms: 2,
+                    size: 45,
+                    icon: '🏢'
+                },
+                {
+                    title: '판교 아파트',
+                    location: '경기 성남시',
+                    price: '12.5',
+                    rooms: 3,
+                    size: 84,
+                    icon: '🏘️'
+                },
+                {
+                    title: '목동 빌라',
+                    location: '서울 양천구',
+                    price: '3.8',
+                    rooms: 2,
+                    size: 55,
+                    icon: '🏡'
+                }
+            ];
+            renderProperties();
+        }
+
+        // 매물 추가
+        function addProperty() {
+            const title = document.getElementById('propertyTitle').value;
+            const location = document.getElementById('propertyLocation').value;
+            const price = document.getElementById('propertyPrice').value;
+
+            if (!title || !location || !price) {
+                alert('모든 필드를 입력해주세요!');
+                return;
+            }
+
+            const icons = ['🏠', '🏢', '🏘️', '🏡', '🏤'];
+            const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+
+            properties.push({
+                title: title,
+                location: location,
+                price: price,
+                rooms: Math.floor(Math.random() * 3) + 1,
+                size: Math.floor(Math.random() * 50) + 30,
+                icon: randomIcon
+            });
+
+            // 입력 필드 초기화
+            document.getElementById('propertyTitle').value = '';
+            document.getElementById('propertyLocation').value = '';
+            document.getElementById('propertyPrice').value = '';
+
+            renderProperties();
+        }
+
+        // 매물 렌더링
+        function renderProperties() {
+            const grid = document.getElementById('propertyGrid');
+            const countElement = document.getElementById('count');
+
+            if (properties.length === 0) {
+                grid.innerHTML = '<div class="no-properties">매물을 추가해주세요</div>';
+                countElement.textContent = '0';
+                return;
+            }
+
+            countElement.textContent = properties.length;
+
+            grid.innerHTML = properties.map((property, index) => `
+                <div class="property-card">
+                    <div class="property-image">${property.icon}</div>
+                    <div class="property-info">
+                        <div class="property-title">${property.title}</div>
+                        <div class="property-location">📍 ${property.location}</div>
+                        <div class="property-price">${property.price}억원</div>
+                        <div class="property-details">
+                            <div class="detail-item">🛏️ ${property.rooms}룸</div>
+                            <div class="detail-item">📐 ${property.size}m²</div>
+                        </div>
+                        <button class="btn" onclick="viewProperty(${index})">상세보기</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 매물 상세보기
+        function viewProperty(index) {
+            const property = properties[index];
+            alert(`매물 상세정보\n\n${property.icon} ${property.title}\n위치: ${property.location}\n가격: ${property.price}억원\n방 개수: ${property.rooms}룸\n크기: ${property.size}m²`);
+        }
+
+        // 페이지 로드 시 샘플 데이터 표시
+        window.addEventListener('DOMContentLoaded', () => {
+            initSampleData();
+        });
+    </script>
+</body>
+</html>
