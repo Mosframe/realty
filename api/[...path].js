@@ -3,7 +3,7 @@ const url = require('url');
 
 const API_BASE_URL = 'new.land.naver.com';
 const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || '';
-const NAVER_COOKIE = process.env.NAVER_COOKIE || '';
+const NAVER_COOKIE = process.env.NAVER_COOKIE || 'NV_WETR_LOCATION_RGN_M="MDI1OTA2MDA="; NNB=IJV4PMAXC4PWS; NID_AUT=Js4hLjHV4thouDK/Rg9dzcyYuIvc8ElNgiEM9e1kUvwvL83kDZMjxKbGSJxmHO4y; NAC=qyFaB4wCM87g; NV_WETR_LAST_ACCESS_RGN_M="MDI1OTA2MDA="; ASID=3a7bcf630000019ba27235bc00000021; BUC=fwWdtkZ_bekHxEuCP-3DXCweJKyWYG9skA3Wjx5JSe0=; NID_SES=AAABypS30CNYOCRB/NNdzAvXtHzw+bZNIfD69/tEbyeCDiY0BvAROi2/Xdommc4CA8DadXXA7cp7TIMDupDLOGquknonUVX8rZUHOXq1Q4C3wDFTvGt8yS1sMTnNe9CDMCpX+2pLG11avt2frcGuJMI8E21MLtaDvhqpUM+DqUZFZ+aCBCDsU9GYN0gP7+Kxz+DbqIEKdLE8Zh3+GeBfiCkRN3ZAR+Eedw8o+UzZVdxyypUAXG1BLBumtqSqZd6Kwc7WdWghRqQYOWZNCWUFp1zrKStPG1S3XnHlGcqrsgLyj356QLTf48qfmVkj5tWzRTVtCleOYZiBeH4nz+4Ct8GfNX9p2S6INQwSd8RIGXxo73Rm42BgoG8jnWIdZsDylVyIPw5U6tkJZ9HbwOsu+2CJm4gJxC4Mg2IXZKSLDkyf243TuZ6ekjcWaIkFYmi0RINAyCtX/YzW8ChxWaWNmi/b0v0n6K2eNs/30bCL4yYzKfDBiKz41usVRZXYOITxm1+AN+VqHmgGQ9oA1F5zbVUR28zC4aA+AXr7A8hJMQFeig+WgaFNooCAHrg1h1nkrlnyhbg1XGE1vdp+vpmm8uBS2+FRxFWmPSHnYRgJ2mgB3ory; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=4100000000; landHomeFlashUseYn=Y; realestate.beta.lastclick.cortar=4159125600';
 
 module.exports = (req, res) => {
     const parsedUrl = url.parse(req.url, true);
@@ -40,7 +40,7 @@ module.exports = (req, res) => {
         headers: headers
     };
 
-    console.log({ hostname: options.hostname, path: options.path });
+    console.log({ hostname: options.hostname, path: options.path, hasCookie: !!headers['cookie'], hasAuth: !!headers['authorization'] });
 
     const proxyReq = https.request(options, (proxyRes) => {
         console.log(`Response status: ${proxyRes.statusCode}`);
