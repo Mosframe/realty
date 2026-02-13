@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://new.land.naver.com/api';
 
 // State
 let currentCortarNo = null;
@@ -16,6 +16,7 @@ const resultsTable = document.getElementById('resultsTable').querySelector('tbod
 // Helper function to make API calls
 async function fetchAPI(url) {
     try {
+        
         const response = await fetch(url);
         
         if (!response.ok) {
