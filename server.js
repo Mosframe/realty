@@ -50,6 +50,8 @@ function proxyAPIRequest(apiPath, res) {
     const pathname = parsedUrl.pathname;
     const query = parsedUrl.query;
     
+    console.log({parsedUrl,pathname,query});
+    
     // Try to use mock data if enabled
     if (USE_MOCK_DATA) {
         const mockKey = getMockDataKey(pathname, query);
@@ -93,6 +95,8 @@ function proxyAPIRequest(apiPath, res) {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
         }
     };
+    
+    console.log({hostname:options.hostname});
 
     const proxyReq = https.request(options, (proxyRes) => {
         console.log(`Response status: ${proxyRes.statusCode}`);
