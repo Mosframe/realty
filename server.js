@@ -139,7 +139,8 @@ const server = http.createServer((req, res) => {
 
     // Handle API proxy requests
     if (pathname.startsWith('/api/')) {
-        const apiPath = pathname.replace('/api', '') + (parsedUrl.search || '');
+        //const apiPath = pathname.replace('/api', '') + (parsedUrl.search || '');
+        const apiPath = pathname + (parsedUrl.search || '');
         proxyAPIRequest(apiPath, res);
         return;
     }
