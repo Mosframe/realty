@@ -3,6 +3,7 @@ const url = require('url');
 
 const API_BASE_URL = 'new.land.naver.com';
 const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || '';
+const NAVER_COOKIE = process.env.NAVER_COOKIE || '';
 
 module.exports = (req, res) => {
     const parsedUrl = url.parse(req.url, true);
@@ -10,27 +11,33 @@ module.exports = (req, res) => {
 
     console.log(`Proxying request: ${apiPath}`);
 
+    const headers = {
+        'accept': '*/*',
+        'accept-encoding': 'identity',
+        'accept-language': 'ko;q=0.7',
+        'authorization': `Bearer ${BEARER_TOKEN}`,
+        'cache-control': 'no-cache',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'sec-ch-ua': '"Not:A-Brand";v="99", "Brave";v="145", "Chromium";v="145"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'sec-gpc': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+    };
+
+    if (NAVER_COOKIE) {
+        headers['cookie'] = NAVER_COOKIE;
+    }
+
     const options = {
         hostname: API_BASE_URL,
         path: apiPath,
         method: 'GET',
-        headers: {
-            'accept': '*/*',
-            'accept-encoding': 'identity',
-            'accept-language': 'ko;q=0.7',
-            'authorization': `Bearer ${BEARER_TOKEN}`,
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
-            'sec-ch-ua': '"Not:A-Brand";v="99", "Brave";v="145", "Chromium";v="145"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'sec-gpc': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
-        }
+        headers: headers
     };
 
     console.log({ hostname: options.hostname, path: options.path });
