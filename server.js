@@ -50,8 +50,6 @@ function proxyAPIRequest(apiPath, res) {
     const pathname = parsedUrl.pathname;
     const query = parsedUrl.query;
     
-    console.log({parsedUrl,pathname,query});
-    
     // Try to use mock data if enabled
     if (USE_MOCK_DATA) {
         const mockKey = getMockDataKey(pathname, query);
