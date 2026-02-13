@@ -45,15 +45,15 @@ function showError(message) {
 
 // Format price to Korean currency
 function formatPrice(price) {
-    const億 = Math.floor(price / 10000);
-    const 만 = price % 10000;
+    const eok = Math.floor(price / 10000);
+    const man = price % 10000;
     
-    if (億 > 0 && 만 > 0) {
-        return `${億}억 ${만.toLocaleString()}만원`;
-    } else if (億 > 0) {
-        return `${億}억원`;
+    if (eok > 0 && man > 0) {
+        return `${eok}억 ${man.toLocaleString()}만원`;
+    } else if (eok > 0) {
+        return `${eok}억원`;
     } else {
-        return `${만.toLocaleString()}만원`;
+        return `${man.toLocaleString()}만원`;
     }
 }
 
@@ -186,7 +186,7 @@ function calculateCurrentPrice(realPriceData) {
                 
                 // Check if within last 3 months
                 if (tradeDate >= threeMonthsAgo) {
-                    const dealPrice = price.dealPrice * 10000; // multiply by 10000 as per requirement
+                    const dealPrice = price.dealPrice; // dealPrice is already in units of 만원 (10,000 won)
                     
                     if (!highestPrice || dealPrice > highestPrice) {
                         highestPrice = dealPrice;
