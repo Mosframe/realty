@@ -9,8 +9,8 @@ const PORT = 3000;
 const API_BASE_URL = 'new.land.naver.com';
 // Note: In production, this token should be stored in environment variables and refreshed regularly
 // The token expires after a certain period and needs to be regenerated from the Naver Land API
-const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3NzA5Nzc3OTksImV4cCI6MTc3MDk4ODU5OX0.KtZaFoCPtVy0DfFhF8KMbpJ-IUgE_CDNhO4HQtfzGt0';
-const USE_MOCK_DATA = false; // Set to true to use mock data when external API is not accessible
+const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN;
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true' || false; // Set to true to use mock data when external API is not accessible
 
 // MIME types
 const mimeTypes = {
@@ -79,7 +79,6 @@ function proxyAPIRequest(apiPath, res) {
             'accept-language': 'ko;q=0.7',
             'authorization': `Bearer ${BEARER_TOKEN}`,
             'cache-control': 'no-cache',
-            'cookie': 'NV_WETR_LOCATION_RGN_M="MDI1OTA2MDA="; NNB=IJV4PMAXC4PWS; NID_AUT=Js4hLjHV4thouDK/Rg9dzcyYuIvc8ElNgiEM9e1kUvwvL83kDZMjxKbGSJxmHO4y; NAC=qyFaB4wCM87g; NV_WETR_LAST_ACCESS_RGN_M="MDI1OTA2MDA="; ASID=3a7bcf630000019ba27235bc00000021; BUC=fwWdtkZ_bekHxEuCP-3DXCweJKyWYG9skA3Wjx5JSe0=; NID_SES=AAABypS30CNYOCRB/NNdzAvXtHzw+bZNIfD69/tEbyeCDiY0BvAROi2/Xdommc4CA8DadXXA7cp7TIMDupDLOGquknonUVX8rZUHOXq1Q4C3wDFTvGt8yS1sMTnNe9CDMCpX+2pLG11avt2frcGuJMI8E21MLtaDvhqpUM+DqUZFZ+aCBCDsU9GYN0gP7+Kxz+DbqIEKdLE8Zh3+GeBfiCkRN3ZAR+Eedw8o+UzZVdxyypUAXG1BLBumtqSqZd6Kwc7WdWghRqQYOWZNCWUFp1zrKStPG1S3XnHlGcqrsgLyj356QLTf48qfmVkj5tWzRTVtCleOYZiBeH4nz+4Ct8GfNX9p2S6INQwSd8RIGXxo73Rm42BgoG8jnWIdZsDylVyIPw5U6tkJZ9HbwOsu+2CJm4gJxC4Mg2IXZKSLDkyf243TuZ6ekjcWaIkFYmi0RINAyCtX/YzW8ChxWaWNmi/b0v0n6K2eNs/30bCL4yYzKfDBiKz41usVRZXYOITxm1+AN+VqHmgGQ9oA1F5zbVUR28zC4aA+AXr7A8hJMQFeig+WgaFNooCAHrg1h1nkrlnyhbg1XGE1vdp+vpmm8uBS2+FRxFWmPSHnYRgJ2mgB3ory; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=4100000000; landHomeFlashUseYn=Y; realestate.beta.lastclick.cortar=4159125600; REALESTATE=Fri%20Feb%2013%202026%2019%3A16%3A39%20GMT%2B0900%20(Korean%20Standard%20Time); PROP_TEST_KEY=1770977799430.551d3eddd43512a1afd41356bfaa7f4d98edd6f02a57905dd1708c1cc9357d56; PROP_TEST_ID=c8e5c52253d74ece8d473d1db4e27a35501605c5bb7e21f34e3b400067e568ee',
             'pragma': 'no-cache',
             'priority': 'u=1, i',
             'sec-ch-ua': '"Not:A-Brand";v="99", "Brave";v="145", "Chromium";v="145"',
@@ -93,7 +92,7 @@ function proxyAPIRequest(apiPath, res) {
         }
     };
     
-    console.log({hostname:options.hostname, path:options.path,auth:options.headers.authorization});
+    console.log({hostname: options.hostname, path: options.path, auth: options.headers.authorization});
 
     const proxyReq = https.request(options, (proxyRes) => {
         console.log(`Response status: ${proxyRes.statusCode}`);
@@ -137,7 +136,6 @@ const server = http.createServer((req, res) => {
 
     // Handle API proxy requests
     if (pathname.startsWith('/api/')) {
-        //const apiPath = pathname.replace('/api', '') + (parsedUrl.search || '');
         const apiPath = pathname + (parsedUrl.search || '');
         proxyAPIRequest(apiPath, res);
         return;

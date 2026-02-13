@@ -238,8 +238,7 @@ async function searchRealEstate() {
             }
             
             // Process each area type in the complex
-            for (let i = 0; i < complexInfo.areaList.length; i++) {
-                const area = complexInfo.areaList[i];
+            for (const area of complexInfo.areaList) {
                 const areaNo = area.pyeongNo;
                 
                 const priceData = await getRealPrices(complex.complexNo, areaNo);
