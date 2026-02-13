@@ -10,7 +10,7 @@ const API_BASE_URL = 'new.land.naver.com';
 // Note: In production, this token should be stored in environment variables and refreshed regularly
 // The token expires after a certain period and needs to be regenerated from the Naver Land API
 const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3NzA5Nzc3OTksImV4cCI6MTc3MDk4ODU5OX0.KtZaFoCPtVy0DfFhF8KMbpJ-IUgE_CDNhO4HQtfzGt0';
-const USE_MOCK_DATA = true; // Set to true to use mock data when external API is not accessible
+const USE_MOCK_DATA = false; // Set to false to use real Naver Land API (requires valid token)
 
 // MIME types
 const mimeTypes = {
