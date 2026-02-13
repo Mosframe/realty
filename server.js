@@ -10,7 +10,7 @@ const API_BASE_URL = 'new.land.naver.com';
 // Note: In production, this token should be stored in environment variables and refreshed regularly
 // The token expires after a certain period and needs to be regenerated from the Naver Land API
 const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN;
-const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true' || false; // Set to true to use mock data when external API is not accessible
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true'; // Set to true to use mock data when external API is not accessible
 
 // MIME types
 const mimeTypes = {
