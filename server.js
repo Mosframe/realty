@@ -5,12 +5,142 @@ const path = require('path');
 const url = require('url');
 const mockData = require('./mockData');
 
-const PORT = 3000;
+// config.txt 읽기 (exe 옆 또는 server.js 옆)
+function loadConfig() {
+    const config = {};
+    const configPath = path.join(path.dirname(process.pkg ? process.execPath : __filename), 'config.txt');
+    try {
+        const content = fs.readFileSync(configPath, 'utf-8');
+        for (const line of content.split(/\r?\n/)) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const idx = trimmed.indexOf('=');
+            if (idx === -1) continue;
+            const key = trimmed.substring(0, idx).trim();
+            const value = trimmed.substring(idx + 1).trim();
+            config[key] = value;
+        }
+        console.log(`config.txt 로드 완료: ${configPath}`);
+    } catch (e) {
+        console.warn(`config.txt를 찾을 수 없습니다 (${configPath}). 기본값을 사용합니다.`);
+    }
+    return config;
+}
+
+const config = loadConfig();
+const PORT = parseInt(config.PORT) || 3000;
 const API_BASE_URL = 'new.land.naver.com';
-// Note: In production, this token should be stored in environment variables and refreshed regularly
-// The token expires after a certain period and needs to be regenerated from the Naver Land API
-const BEARER_TOKEN = process.env.NAVER_LAND_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJFQUxFU1RBVEUiLCJpYXQiOjE3NzA5Nzc3OTksImV4cCI6MTc3MDk4ODU5OX0.KtZaFoCPtVy0DfFhF8KMbpJ-IUgE_CDNhO4HQtfzGt0';
-const USE_MOCK_DATA = false; // Set to true to use mock data when external API is not accessible
+let BEARER_TOKEN = config.NAVER_LAND_TOKEN || '';
+const USE_MOCK_DATA = (config.USE_MOCK_DATA || 'false').toLowerCase() === 'true';
+let tokenRefreshTimer = null;
+
+// JWT 토큰에서 만료 시간 추출
+function getTokenExpiry(token) {
+    if (!token) return null;
+    try {
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        return payload.exp ? payload.exp * 1000 : null;
+    } catch (e) { return null; }
+}
+
+// 네이버 부동산 페이지에서 새 토큰 가져오기
+function refreshToken() {
+    return new Promise((resolve, reject) => {
+        const cookie = config.NAVER_COOKIE || '';
+        if (!cookie) {
+            console.warn('[토큰갱신] 쿠키가 없어 토큰을 갱신할 수 없습니다.');
+            return reject(new Error('쿠키 없음'));
+        }
+
+        console.log('[토큰갱신] 네이버 부동산에서 토큰 가져오는 중...');
+        const options = {
+            hostname: 'new.land.naver.com',
+            path: '/',
+            method: 'GET',
+            headers: {
+                'accept': 'text/html,application/xhtml+xml',
+                'accept-language': 'ko-KR,ko;q=0.9',
+                'cookie': cookie,
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                // __NEXT_DATA__ 또는 script 내 jwt 토큰 추출
+                const patterns = [
+                    /"accessToken"\s*:\s*"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/,
+                    /"token"\s*:\s*"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/,
+                    /Bearer\s+(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/,
+                    /(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/
+                ];
+
+                for (const pattern of patterns) {
+                    const match = body.match(pattern);
+                    if (match && match[1]) {
+                        const newToken = match[1];
+                        const exp = getTokenExpiry(newToken);
+                        // REALESTATE 용 토큰인지 확인
+                        try {
+                            const payload = JSON.parse(Buffer.from(newToken.split('.')[1], 'base64').toString());
+                            if (payload.id === 'REALESTATE' && exp && exp > Date.now()) {
+                                BEARER_TOKEN = newToken;
+                                const expDate = new Date(exp);
+                                console.log(`[토큰갱신] 성공! 만료: ${expDate.toLocaleString('ko-KR')}`);
+                                scheduleTokenRefresh();
+                                return resolve(newToken);
+                            }
+                        } catch (e) { /* 다음 패턴 시도 */ }
+                    }
+                }
+                console.warn('[토큰갱신] 페이지에서 유효한 토큰을 찾지 못했습니다.');
+                reject(new Error('토큰을 찾을 수 없음'));
+            });
+        });
+
+        req.on('error', (err) => {
+            console.error('[토큰갱신] 요청 실패:', err.message);
+            reject(err);
+        });
+
+        req.setTimeout(15000, () => {
+            req.destroy(new Error('토큰 갱신 타임아웃'));
+        });
+
+        req.end();
+    });
+}
+
+// 만료 10분 전에 자동 갱신 스케줄링
+function scheduleTokenRefresh() {
+    if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
+
+    const exp = getTokenExpiry(BEARER_TOKEN);
+    if (!exp) return;
+
+    const refreshAt = exp - 10 * 60 * 1000; // 만료 10분 전
+    const delay = refreshAt - Date.now();
+
+    if (delay <= 0) {
+        // 이미 만료 임박 또는 만료됨 → 즉시 갱신
+        console.log('[토큰갱신] 토큰 만료 임박, 즉시 갱신 시도...');
+        refreshToken().catch(() => {
+            // 실패 시 5분 후 재시도
+            tokenRefreshTimer = setTimeout(() => refreshToken().catch(() => { }), 5 * 60 * 1000);
+        });
+    } else {
+        const refreshDate = new Date(refreshAt);
+        console.log(`[토큰갱신] 다음 갱신 예정: ${refreshDate.toLocaleString('ko-KR')} (${Math.round(delay / 60000)}분 후)`);
+        tokenRefreshTimer = setTimeout(() => {
+            refreshToken().catch(() => {
+                // 실패 시 5분 후 재시도
+                tokenRefreshTimer = setTimeout(() => refreshToken().catch(() => { }), 5 * 60 * 1000);
+            });
+        }, delay);
+    }
+}
 
 // MIME types
 const mimeTypes = {
@@ -79,7 +209,7 @@ function proxyAPIRequest(apiPath, res) {
             'accept-language': 'ko;q=0.7',
             'authorization': `Bearer ${BEARER_TOKEN}`,
             'cache-control': 'no-cache',
-            'cookie': 'NV_WETR_LOCATION_RGN_M="MDI1OTA2MDA="; NNB=IJV4PMAXC4PWS; NID_AUT=Js4hLjHV4thouDK/Rg9dzcyYuIvc8ElNgiEM9e1kUvwvL83kDZMjxKbGSJxmHO4y; NAC=qyFaB4wCM87g; NV_WETR_LAST_ACCESS_RGN_M="MDI1OTA2MDA="; ASID=3a7bcf630000019ba27235bc00000021; BUC=fwWdtkZ_bekHxEuCP-3DXCweJKyWYG9skA3Wjx5JSe0=; NID_SES=AAABypS30CNYOCRB/NNdzAvXtHzw+bZNIfD69/tEbyeCDiY0BvAROi2/Xdommc4CA8DadXXA7cp7TIMDupDLOGquknonUVX8rZUHOXq1Q4C3wDFTvGt8yS1sMTnNe9CDMCpX+2pLG11avt2frcGuJMI8E21MLtaDvhqpUM+DqUZFZ+aCBCDsU9GYN0gP7+Kxz+DbqIEKdLE8Zh3+GeBfiCkRN3ZAR+Eedw8o+UzZVdxyypUAXG1BLBumtqSqZd6Kwc7WdWghRqQYOWZNCWUFp1zrKStPG1S3XnHlGcqrsgLyj356QLTf48qfmVkj5tWzRTVtCleOYZiBeH4nz+4Ct8GfNX9p2S6INQwSd8RIGXxo73Rm42BgoG8jnWIdZsDylVyIPw5U6tkJZ9HbwOsu+2CJm4gJxC4Mg2IXZKSLDkyf243TuZ6ekjcWaIkFYmi0RINAyCtX/YzW8ChxWaWNmi/b0v0n6K2eNs/30bCL4yYzKfDBiKz41usVRZXYOITxm1+AN+VqHmgGQ9oA1F5zbVUR28zC4aA+AXr7A8hJMQFeig+WgaFNooCAHrg1h1nkrlnyhbg1XGE1vdp+vpmm8uBS2+FRxFWmPSHnYRgJ2mgB3ory; nhn.realestate.article.rlet_type_cd=A01; nhn.realestate.article.trade_type_cd=""; nhn.realestate.article.ipaddress_city=4100000000; landHomeFlashUseYn=Y; realestate.beta.lastclick.cortar=4159125600; REALESTATE=Fri%20Feb%2013%202026%2019%3A16%3A39%20GMT%2B0900%20(Korean%20Standard%20Time); PROP_TEST_KEY=1770977799430.551d3eddd43512a1afd41356bfaa7f4d98edd6f02a57905dd1708c1cc9357d56; PROP_TEST_ID=c8e5c52253d74ece8d473d1db4e27a35501605c5bb7e21f34e3b400067e568ee',
+            'cookie': config.NAVER_COOKIE || '',
             'pragma': 'no-cache',
             'priority': 'u=1, i',
             'sec-ch-ua': '"Not:A-Brand";v="99", "Brave";v="145", "Chromium";v="145"',
@@ -160,6 +290,30 @@ const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    // 토큰 만료일 조회
+    if (pathname === '/api/token-info') {
+        const exp = getTokenExpiry(BEARER_TOKEN);
+        const expDate = exp ? new Date(exp).toISOString() : null;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ expDate }));
+        return;
+    }
+
+    // 수동 토큰 갱신
+    if (pathname === '/api/token-refresh') {
+        refreshToken()
+            .then(() => {
+                const exp = getTokenExpiry(BEARER_TOKEN);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, expDate: exp ? new Date(exp).toISOString() : null }));
+            })
+            .catch((err) => {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, message: err.message }));
+            });
+        return;
+    }
+
     // Handle API proxy requests
     if (pathname.startsWith('/api/')) {
         //const apiPath = pathname.replace('/api', '') + (parsedUrl.search || '');
@@ -197,6 +351,16 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/`);
     console.log('Press Ctrl+C to stop the server');
+
+    // 토큰 자동 갱신 시작
+    const exp = getTokenExpiry(BEARER_TOKEN);
+    if (exp) {
+        console.log(`[토큰] 현재 만료: ${new Date(exp).toLocaleString('ko-KR')}`);
+        scheduleTokenRefresh();
+    } else {
+        console.log('[토큰] 저장된 토큰 없음, 즉시 갱신 시도...');
+        refreshToken().catch(() => console.warn('[토큰] 자동 갱신 실패. config.txt에 유효한 쿠키를 설정하세요.'));
+    }
 
     // Auto-open browser
     const { exec } = require('child_process');

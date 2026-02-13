@@ -18,6 +18,67 @@ const pyeongMaxInput = document.getElementById('pyeongMax');
 const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 
+// 토큰 만료일 표시 및 자동 업데이트
+(function initTokenExpiry() {
+    const el = document.getElementById('tokenExpiryText');
+    const refreshBtn = document.getElementById('tokenRefreshBtn');
+
+    async function updateTokenExpiry() {
+        try {
+            const res = await fetch('/api/token-info');
+            const data = await res.json();
+            el.className = '';
+            if (data.expDate) {
+                const exp = new Date(data.expDate);
+                const now = new Date();
+                const diffMs = exp - now;
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                const dateStr = exp.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                if (diffMs <= 0) {
+                    el.textContent = `만료됨 (${dateStr})`;
+                    el.parentElement.className = 'token-expiry expired';
+                } else if (diffHours < 1) {
+                    el.textContent = `${diffMins}분 후 만료 (${dateStr})`;
+                    el.parentElement.className = 'token-expiry expiring-soon';
+                } else {
+                    el.textContent = `토큰 만료: ${dateStr}`;
+                    el.parentElement.className = 'token-expiry';
+                }
+            } else {
+                el.textContent = '토큰 없음';
+                el.parentElement.className = 'token-expiry expired';
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    // 수동 갱신 버튼
+    refreshBtn.addEventListener('click', async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = '⏳';
+        try {
+            const res = await fetch('/api/token-refresh');
+            const data = await res.json();
+            if (data.success) {
+                await updateTokenExpiry();
+            } else {
+                el.textContent = `갱신 실패: ${data.message}`;
+                el.parentElement.className = 'token-expiry expired';
+            }
+        } catch (e) {
+            el.textContent = '갱신 실패';
+            el.parentElement.className = 'token-expiry expired';
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = '↻';
+        }
+    });
+
+    // 초기 표시 + 1분마다 업데이트
+    updateTokenExpiry();
+    setInterval(updateTokenExpiry, 60000);
+})();
+
 // Set default date range (1 month ago ~ today)
 (function setDefaultDateRange() {
     const today = new Date();
