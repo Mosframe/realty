@@ -43,15 +43,14 @@ function getMockDataKey(pathname, query) {
 
 // Proxy API requests to Naver Land or return mock data
 function proxyAPIRequest(apiPath, res) {
+    
     console.log(`Proxying request: ${apiPath}`);
     
     // Parse URL to extract query parameters
     const parsedUrl = url.parse(apiPath, true);
     const pathname = parsedUrl.pathname;
     const query = parsedUrl.query;
-    
-    console.log({parsedUrl,pathname,query});
-    
+   
     // Try to use mock data if enabled
     if (USE_MOCK_DATA) {
         const mockKey = getMockDataKey(pathname, query);
@@ -98,6 +97,7 @@ function proxyAPIRequest(apiPath, res) {
     console.log({hostname:options.hostname});
 
     const proxyReq = https.request(options, (proxyRes) => {
+        
         console.log(`Response status: ${proxyRes.statusCode}`);
         
         let data = [];
