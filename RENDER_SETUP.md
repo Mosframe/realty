@@ -137,7 +137,7 @@ https://your-service-name.onrender.com/api/regions/list?cortarNo=0000000000
 2. 브라우저 개발자 도구 열기 (F12)
 
 3. Console 탭 확인:
-   - ❌ "Backend API not available" → 설정 오류
+   - ❌ "API Error" 또는 네트워크 오류 → 설정 오류
    - ❌ "Failed to load resource" → URL 오류
    - ✅ 정상: 오류 메시지 없음
 
@@ -147,7 +147,7 @@ https://your-service-name.onrender.com/api/regions/list?cortarNo=0000000000
 
 ## 🔍 문제 해결
 
-### 문제 1: "시도 목록을 불러오는데 실패했습니다"
+### 문제 1: "시도 목록을 불러오는데 실패했습니다. 서버 연결을 확인하세요."
 
 **원인**:
 - Render.com URL이 잘못되었거나
