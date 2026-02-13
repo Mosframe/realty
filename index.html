@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 정보 검색</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 부동산 정보 검색</h1>
+            <p class="subtitle">실시간 부동산 정보를 확인하세요</p>
+        </header>
+
+        <main>
+            <section class="search-section">
+                <div class="search-box">
+                    <h2>검색 옵션</h2>
+                    <form id="searchForm">
+                        <div class="form-group">
+                            <label for="region">지역</label>
+                            <select id="region" name="region">
+                                <option value="">전체</option>
+                                <option value="서울">서울</option>
+                                <option value="부산">부산</option>
+                                <option value="대구">대구</option>
+                                <option value="인천">인천</option>
+                                <option value="광주">광주</option>
+                                <option value="대전">대전</option>
+                                <option value="울산">울산</option>
+                                <option value="세종">세종</option>
+                                <option value="경기">경기</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="propertyType">매물 유형</label>
+                            <select id="propertyType" name="propertyType">
+                                <option value="">전체</option>
+                                <option value="아파트">아파트</option>
+                                <option value="빌라">빌라</option>
+                                <option value="오피스텔">오피스텔</option>
+                                <option value="단독주택">단독주택</option>
+                                <option value="상가">상가</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tradeType">거래 유형</label>
+                            <select id="tradeType" name="tradeType">
+                                <option value="">전체</option>
+                                <option value="매매">매매</option>
+                                <option value="전세">전세</option>
+                                <option value="월세">월세</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="minPrice">최소 가격 (만원)</label>
+                            <input type="number" id="minPrice" name="minPrice" placeholder="예: 10000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxPrice">최대 가격 (만원)</label>
+                            <input type="number" id="maxPrice" name="maxPrice" placeholder="예: 50000">
+                        </div>
+
+                        <button type="submit" class="btn-search">검색</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="results-section">
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>총 매물 수</h3>
+                        <p class="stat-value" id="totalCount">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>평균 가격</h3>
+                        <p class="stat-value" id="avgPrice">0원</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>최근 업데이트</h3>
+                        <p class="stat-value" id="lastUpdate">-</p>
+                    </div>
+                </div>
+
+                <div class="results-header">
+                    <h2>검색 결과</h2>
+                    <div class="view-options">
+                        <button class="view-btn active" data-view="grid">
+                            <span>📊</span> 그리드
+                        </button>
+                        <button class="view-btn" data-view="list">
+                            <span>📝</span> 리스트
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resultsContainer" class="results-grid">
+                    <div class="no-results">
+                        <p>검색 조건을 선택하고 검색 버튼을 클릭하세요.</p>
+                    </div>
+                </div>
+
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>검색 중...</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 부동산 정보 검색. All rights reserved.</p>
+            <p class="api-info">API 데모 버전 - 실제 데이터는 공공 API 연동 시 제공됩니다</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
