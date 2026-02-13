@@ -3,9 +3,11 @@
   "version": "1.0.1",
   "description": "부동산 실거래가 랭킹 사이트",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "build": "pkg . --targets node18-win-x64 --output dist/realty.exe",
     "vercel-build": "echo 'No build step required'"
   },
   "keywords": [
@@ -14,5 +16,14 @@
     "naver-land"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "pkg": {
+    "assets": [
+      "index.html",
+      "app.js",
+      "style.css",
+      "mockData.js"
+    ],
+    "outputPath": "dist"
+  }
 }

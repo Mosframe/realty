@@ -169,9 +169,10 @@ const server = http.createServer((req, res) => {
     }
 
     // Handle static files
-    let filePath = '.' + pathname;
-    if (filePath === './') {
-        filePath = './index.html';
+    // Both pkg (snapshot filesystem) and normal node use __dirname
+    let filePath = path.join(__dirname, pathname);
+    if (pathname === '/') {
+        filePath = path.join(__dirname, 'index.html');
     }
 
     const extname = String(path.extname(filePath)).toLowerCase();
@@ -196,4 +197,8 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/`);
     console.log('Press Ctrl+C to stop the server');
+
+    // Auto-open browser
+    const { exec } = require('child_process');
+    exec(`start http://localhost:${PORT}`);
 });
