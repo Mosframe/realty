@@ -76,6 +76,33 @@ realty/
 - 가격순 자동 정렬
 - 상위 3개 항목 강조 표시 (금, 은, 동메달)
 
+## 배포 (Deployment)
+
+### GitHub Pages (프론트엔드만)
+현재 프론트엔드는 GitHub Pages에서 호스팅되며, mock 데이터를 사용하여 백엔드 없이도 동작합니다.
+
+**접속 URL**: https://mosframe.github.io/realty/
+
+### 백엔드 배포 (선택사항)
+실시간 Naver Land API 데이터를 사용하려면 `server.js` 백엔드를 별도로 배포해야 합니다.
+
+**무료 호스팅 옵션**:
+- **Render.com** (추천) - 완전 무료, 간단한 설정
+- **Railway.app** - $5 무료 크레딧, 슬립 모드 없음
+- **Cyclic.sh** - 완전 무료, 슬립 모드 없음
+- **Glitch.com** - 초보자 친화적
+- **Fly.io** - 전 세계 엣지 네트워크
+
+📖 **상세한 배포 가이드**: [DEPLOYMENT.md](DEPLOYMENT.md) 문서를 참조하세요.
+
+### 빠른 배포 (Render.com)
+1. [Render.com](https://render.com) 회원가입
+2. GitHub 저장소 연결
+3. "New Web Service" 선택
+4. Start Command: `node server.js`
+5. 환경 변수 `NAVER_LAND_TOKEN` 설정
+6. 배포 완료!
+
 ## 라이선스
 
 MIT License

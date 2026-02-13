@@ -13,5 +13,8 @@
     "naver-land"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.x"
+  }
 }
