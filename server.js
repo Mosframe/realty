@@ -29,7 +29,8 @@ function loadConfig() {
 const config = loadConfig();
 const PORT = parseInt(config.PORT) || 3000;
 const API_BASE_URL = 'new.land.naver.com';
-const BEARER_TOKEN = config.NAVER_LAND_TOKEN;
+const BEARER_TOKEN = config.NAVER_LAND_TOKEN || '';
+const COOKIE = config.NAVER_COOKIE || '';
 
 
 // MIME types
@@ -57,9 +58,9 @@ function proxyAPIRequest(apiPath, res) {
             'accept': '*/*',
             'accept-encoding': 'identity',
             'accept-language': 'ko;q=0.7',
-            'authorization': `Bearer ${}`,
+            'authorization': `Bearer ${BEARER_TOKEN}`,
             'cache-control': 'no-cache',
-            'cookie': config.NAVER_COOKIE,
+            'cookie': COOKIE,
             'pragma': 'no-cache',
             'priority': 'u=1, i',
             'sec-ch-ua': '"Not:A-Brand";v="99", "Brave";v="145", "Chromium";v="145"',
