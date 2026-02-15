@@ -21,6 +21,7 @@
       "index.html",
       "app.js",
       "style.css",
+      "config.json",
       "config.txt"
     ],
     "outputPath": "dist"
