@@ -1,13 +1,13 @@
 {
   "name": "realty",
-  "version": "1.0.1",
+  "version": "1.0.123",
   "description": "부동산 실거래가 랭킹 사이트",
   "main": "server.js",
   "bin": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "npx pkg . --targets node18-win-x64 --output dist/realty.exe"
+    "build": "npm version patch --no-git-tag-version && npx pkg . --targets node18-win-x64 --output dist/realty.exe && copy config.txt dist\\config.txt"
   },
   "keywords": [
     "realty",

@@ -51,91 +51,86 @@ function refreshToken() {
             console.warn('[토큰갱신] 쿠키가 없어 토큰을 갱신할 수 없습니다.');
             return reject(new Error('쿠키 없음'));
         }
-
-        console.log('[토큰갱신] 네이버 부동산에서 토큰 가져오는 중...');
-        const options = {
+        console.log('[토큰갱신] 네이버 부동산 토큰 API 호출 중...');
+        const req = https.request({
             hostname: 'new.land.naver.com',
-            path: '/',
+            path: '/api/auth/getAuthToken',
             method: 'GET',
             headers: {
-                'accept': 'text/html,application/xhtml+xml',
+                'accept': 'application/json',
                 'accept-language': 'ko-KR,ko;q=0.9',
                 'cookie': cookie,
+                'referer': 'https://new.land.naver.com/',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
                 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
             }
-        };
-
-        const req = https.request(options, (res) => {
+        }, (res) => {
             let body = '';
             res.on('data', (chunk) => body += chunk);
             res.on('end', () => {
-                // __NEXT_DATA__ 또는 script 내 jwt 토큰 추출
-                const patterns = [
-                    /"accessToken"\s*:\s*"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/,
-                    /"token"\s*:\s*"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/,
-                    /Bearer\s+(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/,
-                    /(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/
-                ];
-
-                for (const pattern of patterns) {
-                    const match = body.match(pattern);
-                    if (match && match[1]) {
-                        const newToken = match[1];
-                        const exp = getTokenExpiry(newToken);
-                        // REALESTATE 용 토큰인지 확인
-                        try {
-                            const payload = JSON.parse(Buffer.from(newToken.split('.')[1], 'base64').toString());
-                            if (payload.id === 'REALESTATE' && exp && exp > Date.now()) {
-                                BEARER_TOKEN = newToken;
-                                const expDate = new Date(exp);
-                                console.log(`[토큰갱신] 성공! 만료: ${expDate.toLocaleString('ko-KR')}`);
-                                scheduleTokenRefresh();
-                                return resolve(newToken);
-                            }
-                        } catch (e) { /* 다음 패턴 시도 */ }
-                    }
+                console.log(`[토큰갱신] 응답 상태: ${res.statusCode}`);
+                if (res.statusCode === 429) {
+                    console.warn('[토큰갱신] Rate limit 초과. 잠시 후 재시도됩니다.');
+                    return reject(new Error('요청 과다 (429). 잠시 후 재시도하세요.'));
                 }
-                console.warn('[토큰갱신] 페이지에서 유효한 토큰을 찾지 못했습니다.');
-                reject(new Error('토큰을 찾을 수 없음'));
+                try {
+                    const data = JSON.parse(body);
+                    const newToken = data.accessToken || data.token || data.result?.accessToken;
+                    if (newToken) {
+                        const exp = getTokenExpiry(newToken);
+                        if (exp && exp > Date.now()) {
+                            BEARER_TOKEN = newToken;
+                            console.log(`[토큰갱신] 성공! 만료: ${new Date(exp).toLocaleString('ko-KR')}`);
+                            scheduleTokenRefresh();
+                            return resolve(newToken);
+                        }
+                    }
+                    // JSON에서 토큰을 못 찾으면 body 전체에서 JWT 패턴 검색
+                    const jwtMatch = body.match(/(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/);
+                    if (jwtMatch) {
+                        const token = jwtMatch[1];
+                        const exp = getTokenExpiry(token);
+                        try {
+                            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+                            if (payload.id === 'REALESTATE' && exp && exp > Date.now()) {
+                                BEARER_TOKEN = token;
+                                console.log(`[토큰갱신] 성공! 만료: ${new Date(exp).toLocaleString('ko-KR')}`);
+                                scheduleTokenRefresh();
+                                return resolve(token);
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    console.warn('[토큰갱신] 유효한 토큰을 찾지 못했습니다. 응답:', body.substring(0, 200));
+                    reject(new Error('토큰을 찾을 수 없음'));
+                } catch (e) {
+                    console.warn('[토큰갱신] 응답 파싱 실패:', body.substring(0, 200));
+                    reject(new Error('응답 파싱 실패'));
+                }
             });
         });
-
-        req.on('error', (err) => {
-            console.error('[토큰갱신] 요청 실패:', err.message);
-            reject(err);
-        });
-
-        req.setTimeout(15000, () => {
-            req.destroy(new Error('토큰 갱신 타임아웃'));
-        });
-
+        req.on('error', (err) => { console.error('[토큰갱신] 요청 실패:', err.message); reject(err); });
+        req.setTimeout(15000, () => req.destroy(new Error('토큰 갱신 타임아웃')));
         req.end();
     });
 }
 
-// 만료 10분 전에 자동 갱신 스케줄링
+// 만료 10분 전에 자동 갱신
 function scheduleTokenRefresh() {
     if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
-
     const exp = getTokenExpiry(BEARER_TOKEN);
     if (!exp) return;
-
-    const refreshAt = exp - 10 * 60 * 1000; // 만료 10분 전
-    const delay = refreshAt - Date.now();
-
+    const delay = exp - 10 * 60 * 1000 - Date.now();
     if (delay <= 0) {
-        // 이미 만료 임박 또는 만료됨 → 즉시 갱신
-        console.log('[토큰갱신] 토큰 만료 임박, 즉시 갱신 시도...');
+        console.log('[토큰갱신] 토큰 만료 임박, 즉시 갱신...');
         refreshToken().catch(() => {
-            // 실패 시 5분 후 재시도
             tokenRefreshTimer = setTimeout(() => refreshToken().catch(() => { }), 5 * 60 * 1000);
         });
     } else {
-        const refreshDate = new Date(refreshAt);
-        console.log(`[토큰갱신] 다음 갱신 예정: ${refreshDate.toLocaleString('ko-KR')} (${Math.round(delay / 60000)}분 후)`);
+        console.log(`[토큰갱신] 다음 갱신: ${Math.round(delay / 60000)}분 후`);
         tokenRefreshTimer = setTimeout(() => {
             refreshToken().catch(() => {
-                // 실패 시 5분 후 재시도
                 tokenRefreshTimer = setTimeout(() => refreshToken().catch(() => { }), 5 * 60 * 1000);
             });
         }, delay);
@@ -173,7 +168,6 @@ function getMockDataKey(pathname, query) {
 
 // Proxy API requests to Naver Land or return mock data
 function proxyAPIRequest(apiPath, res) {
-    console.log(`Proxying request: ${apiPath}`);
 
     // Parse URL to extract query parameters
     const parsedUrl = url.parse(apiPath, true);
@@ -183,10 +177,8 @@ function proxyAPIRequest(apiPath, res) {
     // Try to use mock data if enabled
     if (USE_MOCK_DATA) {
         const mockKey = getMockDataKey(pathname, query);
-        console.log(`Looking for mock data key: ${mockKey}`);
 
         if (mockKey && mockData[mockKey]) {
-            console.log(`Using mock data for: ${mockKey}`);
             res.writeHead(200, {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
@@ -223,10 +215,7 @@ function proxyAPIRequest(apiPath, res) {
         }
     };
 
-    console.log({ hostname: options.hostname, path: options.path, auth: options.headers.authorization });
-
     const proxyReq = https.request(options, (proxyRes) => {
-        console.log(`Response status: ${proxyRes.statusCode}`);
 
         let data = [];
 
@@ -236,7 +225,6 @@ function proxyAPIRequest(apiPath, res) {
 
         proxyRes.on('end', () => {
             const buffer = Buffer.concat(data);
-            console.log(`Response received: ${buffer.length} bytes`);
 
             // If upstream returned an error, include details
             if (proxyRes.statusCode >= 400) {
@@ -294,8 +282,19 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/token-info') {
         const exp = getTokenExpiry(BEARER_TOKEN);
         const expDate = exp ? new Date(exp).toISOString() : null;
+        const pkg = require('./package.json');
+        const defaults = {
+            sido: config['기본_시도'] || config.DEFAULT_SIDO || '',
+            district: config['기본_시군구'] || config.DEFAULT_DISTRICT || '',
+            dong: config['기본_동'] || config.DEFAULT_DONG || '',
+            pyeongMin: config['기본_최소평형'] || config.DEFAULT_PYEONG_MIN || '',
+            pyeongMax: config['기본_최대평형'] || config.DEFAULT_PYEONG_MAX || '',
+            dateFrom: config['기본_시작일자'] || config.DEFAULT_DATE_FROM || (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10); })(),
+            dateTo: config['기본_종료일자'] || config.DEFAULT_DATE_TO || '',
+            topOnly: config['기본_단지별최고가만'] || config.DEFAULT_TOP_ONLY || 'false'
+        };
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ expDate }));
+        res.end(JSON.stringify({ expDate, version: pkg.version, defaults }));
         return;
     }
 

@@ -1,3 +1,8 @@
+.price-highest {
+    color: #e74c3c !important;
+    font-weight: 700 !important;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -15,7 +20,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     background-color: white;
-    padding: 30px;
+    padding: 14px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -23,9 +28,13 @@ body {
 h1 {
     text-align: center;
     color: #2c3e50;
-    margin-bottom: 30px;
-    font-size: 2em;
+    margin-bottom: 10px;
+    font-size: 1em;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    transition: all 0.3s ease;
 }
+
 
 .header-row {
     display: flex;
@@ -35,7 +44,30 @@ h1 {
 }
 
 .header-row h1 {
-    margin-bottom: 30px;
+    margin-bottom: 5px;
+}
+
+.container h1 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.container .header-row {
+    margin-bottom: 0;
+}
+
+.container .controls {
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+
+.app-version {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    font-size: 0.7em;
+    color: #95a5a6;
 }
 
 .token-expiry {
@@ -83,40 +115,57 @@ h1 {
 
 h2 {
     color: #2c3e50;
-    margin: 30px 0 20px;
-    font-size: 1.5em;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 10px;
+    margin: 18px 0 12px;
+    font-size: 1.05em;
+    border-bottom: 1px solid #3498db;
+    padding-bottom: 4px;
 }
 
 .controls {
     display: flex;
-    gap: 15px;
-    margin-bottom: 30px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .form-group {
     flex: 1;
-    min-width: 200px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
+    margin-bottom: 1px;
+    font-weight: 500;
     color: #555;
+    font-size: 13px;
+}
+
+.pyeong-range {
+    display: flex;
+    align-items: center;
+
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
 }
 
 .form-control {
     width: 100%;
-    padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
+    min-height: 24px;
+    padding: 4px 6px;
     transition: border-color 0.3s;
 }
+
 
 .form-control:focus {
     outline: none;
@@ -129,10 +178,11 @@ h2 {
 }
 
 .btn {
-    padding: 10px 30px;
+    padding: 5px 12px;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
+    min-height: 28px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
@@ -147,6 +197,15 @@ h2 {
     background-color: #2980b9;
 }
 
+.btn-stop {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-stop:hover {
+    background-color: #c0392b;
+}
+
 .btn:disabled {
     background-color: #bdc3c7;
     cursor: not-allowed;
@@ -154,7 +213,8 @@ h2 {
 
 .loading {
     text-align: center;
-    padding: 40px;
+    padding: 18px !important;
+    font-size: 13px;
 }
 
 .spinner {
@@ -164,18 +224,10 @@ h2 {
     border: 4px solid #f3f3f3;
     border-top: 4px solid #3498db;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    /* animation removed */
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
+/* keyframes spin removed */
 
 .error {
     background-color: #e74c3c;
@@ -184,6 +236,20 @@ h2 {
     border-radius: 4px;
     margin-bottom: 20px;
 }
+
+.search-status {
+    background-color: #eaf4fe;
+    color: #2874a6;
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border-left: 4px solid #3498db;
+    /* animation removed */
+}
+
+/* keyframes statusPulse removed */
 
 .table {
     width: 100%;
@@ -198,13 +264,57 @@ h2 {
 
 .table th,
 .table td {
-    padding: 12px;
+    padding: 4px 4px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    font-size: 13px;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    width: 50px;
+    text-align: center;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    text-align: left;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+    width: 100px;
+    text-align: center;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+    width: 100px;
+    text-align: center;
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+    text-align: right;
+    width: 200px;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+    width: 150px;
+    text-align: right;
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7) {
+    width: 150px;
+    text-align: center;
 }
 
 .table th {
     font-weight: 600;
+    border-bottom: 2px solid #2c3e50;
 }
 
 .table tbody tr:hover {
@@ -212,7 +322,7 @@ h2 {
 }
 
 .table tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #f9f9f9 !important;
 }
 
 .no-data {
@@ -221,83 +331,426 @@ h2 {
     color: #999;
 }
 
-.price {
-    color: #e74c3c;
-    font-weight: 700;
+
+
+
+.price-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    width: 100%;
+}
+
+
+
+/* 가격 셀: 최고가(좌), 시세(우) */
+.price-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.price-flex .badge-area {
+    margin-right: 0;
+    margin-left: 0;
+    min-width: 40px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+
+.price-flex .price-value {
+    text-align: right;
+    font-weight: 400 !important;
+    color: #111 !important;
     font-size: 1.1em;
-}
 
-.rank-1 {
-    background-color: #e8f5e9 !important;
-}
-
-.rank-2 {
-    background-color: #e3f2fd !important;
-}
-
-.rank-3 {
-    background-color: #fff3e0 !important;
-}
-
-.pyeong-filter {
-    min-width: 200px;
-}
-
-.date-filter {
-    min-width: 280px;
-}
-
-.date-range {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.date-input {
-    width: 140px !important;
-    min-width: 130px;
-    text-align: center;
-}
-
-.pyeong-range {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.pyeong-input {
-    width: 80px !important;
-    min-width: 70px;
-    text-align: center;
-}
-
-.pyeong-separator {
-    font-weight: 600;
-    color: #555;
-    flex-shrink: 0;
-}
-
-.pyeong-unit {
-    font-weight: 600;
-    color: #555;
-    flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
+    .price-per-pyeong-cell {
+        font-weight: 700;
     }
 
-    .form-group {
+    td.price {
+        display: table-cell;
+        text-align: right;
+        white-space: nowrap;
+        padding-right: 8px;
+        gap: 0;
+        align-items: unset;
+        justify-content: unset;
+    }
+
+    .rank-1 {
+        background-color: #e8f5e9 !important;
+    }
+
+    .rank-2 {
+        background-color: #e3f2fd !important;
+    }
+
+    .rank-3 {
+        background-color: #fff3e0 !important;
+    }
+
+    /* 1,2,3위 순위 변동 시 강렬한 애니메이션 */
+    .rank-change-highlight {
+        /* all rank change animations and keyframes removed */
+
+        /* 순위 변동 애니메이션 */
+        .table tbody tr {
+            transition: background-color 0.5s ease;
+            box-shadow: 0 1px 0 #ddd;
+            background-color: #fff;
+        }
+
+        .rank-cell {
+            font-weight: 700;
+            min-width: 40px;
+            text-align: center;
+            padding-top: 2px;
+            padding-bottom: 2px;
+        }
+
+        /* 새 행 등장 애니메이션 */
+        .row-enter {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: none;
+        }
+
+        .table tbody tr:not(.row-enter) {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.4, 0.7, 0.6, 1), background-color 0.5s ease;
+        }
+
+        /* 가격 미조회 행 */
+        .row-pending {
+            opacity: 0.5;
+        }
+
+        .row-pending td {
+            color: #999;
+        }
+
+        .price-loading {
+            color: #999;
+            font-weight: 400;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .badge-new {
+            display: inline-block;
+            background: linear-gradient(135deg, #e74c3c, #ff6b6b);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-left: 6px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-today {
+            display: inline-block;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
+        }
+
+
+        .top-only-filter {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+            user-select: none;
+            height: 38px;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #4a90d9;
+        }
+
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .date-input {
+            width: 140px !important;
+            min-width: 130px;
+            text-align: center;
+        }
+
+        .date-range,
+        .pyeong-range {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+            min-width: 180px;
+        }
+
+        .date-input,
+        .pyeong-input {
+            display: inline-block;
+            width: 60px !important;
+            min-width: 50px;
+            text-align: center;
+            margin-right: 2px;
+            padding: 2px 4px;
+        }
+
+        .date-input {
+            display: inline-block;
+            width: 90px !important;
+            min-width: 70px;
+            text-align: center;
+            margin-right: 4px;
+        }
+
+        color: #555;
+        flex-shrink: 0;
+    }
+
+    .no-price {
+        color: #aaa;
+        font-weight: 400;
+        font-size: 1em;
+        text-align: right;
+        padding-right: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .controls {
+            flex-direction: column;
+        }
+
+        .form-group {
+            width: 100%;
+        }
+
+        .table {
+            font-size: 12px;
+        }
+
+        .table th,
+        .table td {
+            padding: 8px;
+        }
+    }
+
+    /* 세부정보 모달 */
+    .detail-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        /* animation removed */
     }
 
-    .table {
-        font-size: 12px;
+    /* keyframes fadeIn removed */
+
+    .detail-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        /* animation removed */
     }
 
-    .table th,
-    .table td {
-        padding: 8px;
+    /* keyframes slideUp removed */
+
+    .detail-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-modal-header h3 {
+        margin: 0;
+        font-size: 17px;
+        color: #2c3e50;
+    }
+
+    .detail-close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+        padding: 0 4px;
+        line-height: 1;
+    }
+
+    .detail-close-btn:hover {
+        color: #333;
+    }
+
+    .detail-modal-body {
+        padding: 8px 10px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .detail-modal-body h4 {
+        margin: 16px 0 8px;
+        font-size: 14px;
+        color: #555;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 4px;
+    }
+
+    .detail-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .detail-info-item {
+        display: flex;
+        gap: 6px;
+    }
+
+    .detail-info-item .label {
+        color: #888;
+        min-width: 60px;
+        flex-shrink: 0;
+    }
+
+    .detail-info-item .value {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .detail-table-wrap {
+        overflow-y: auto;
+        max-height: 45vh;
+    }
+
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .detail-table th {
+        background: #f8f9fa;
+        padding: 8px 10px;
+        text-align: center;
+        font-weight: 600;
+        color: #555;
+        position: sticky;
+        top: 0;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .detail-table td {
+        padding: 4px 6px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-table tbody tr:hover {
+        background: #f0f8ff;
+    }
+
+    .detail-table .trade-price {
+        color: #e74c3c;
+        font-weight: 700;
+    }
+
+    .detail-table .trade-highest {
+        background-color: #fff8e1;
+    }
+
+    .detail-loading {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+    }
+
+    /* 클릭 가능 행 커서 */
+    .table tbody tr[data-key] {
+        cursor: pointer;
+    }
+
+    .table tbody tr[data-key]:hover {
+        filter: brightness(0.97);
+    }
+
+    .controls+.controls .top-only-filter {
+        margin-top: -6px;
+        margin-bottom: 2px;
+    }
+
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 2px;
+    }
+
+    .filter-row2 {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-bottom: 6px;
+        min-height: 28px;
+    }
+
+    .filter-row2 .top-only-filter {
+        margin-bottom: 0;
+    }
+
+    .filter-btns {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        height: 100%;
+    }
+
+    #searchBtn,
+    #stopBtn {
+        min-height: 32px;
     }
 }

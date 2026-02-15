@@ -11,6 +11,7 @@
 <body>
     <div class="container">
         <div class="header-row">
+            <div id="appVersion" class="app-version"></div>
             <h1>부동산 실거래가 랭킹</h1>
             <div id="tokenExpiry" class="token-expiry">
                 <span id="tokenExpiryText"></span>
@@ -18,28 +19,25 @@
             </div>
         </div>
 
-        <div class="controls">
+        <div class="controls filter-row">
             <div class="form-group">
                 <label for="sido">시도</label>
                 <select id="sido" class="form-control">
                     <option value="">시도 선택</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label for="district">시/군/구</label>
                 <select id="district" class="form-control" disabled>
                     <option value="">시/군/구 선택</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label for="dong">동</label>
                 <select id="dong" class="form-control" disabled>
                     <option value="">동 선택</option>
                 </select>
             </div>
-
             <div class="form-group pyeong-filter">
                 <label>평형 범위</label>
                 <div class="pyeong-range">
@@ -51,7 +49,6 @@
                     <span class="pyeong-unit">평</span>
                 </div>
             </div>
-
             <div class="form-group date-filter">
                 <label>거래일자 범위</label>
                 <div class="date-range">
@@ -60,8 +57,17 @@
                     <input type="date" id="dateTo" class="form-control date-input">
                 </div>
             </div>
-
-            <button id="searchBtn" class="btn btn-primary" disabled>조회</button>
+        </div>
+        <div class="controls filter-row2">
+            <div class="form-group top-only-filter">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="topOnlyCheckbox">
+                    단지별 최고 평단가만
+                </label>
+            </div>
+            <div class="filter-btns">
+                <button id="searchBtn" class="btn btn-primary" disabled>조회</button>
+            </div>
         </div>
 
         <div id="loading" class="loading" style="display: none;">
@@ -71,8 +77,16 @@
 
         <div id="error" class="error" style="display: none;"></div>
 
+        <div id="searchStatus" class="search-status" style="display: none;"></div>
+
         <div id="results">
-            <h2>실거래가 현황</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <h2 class="results-title">실거래가 현황</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button id="copyClipboardBtn" style="display:none;" class="btn btn-secondary">클립보드 복사</button>
+                    <button id="excelDownloadBtn" style="display:none;" class="btn btn-secondary">엑셀로 다운로드</button>
+                </div>
+            </div>
             <table id="resultsTable" class="table">
                 <thead>
                     <tr>
@@ -81,6 +95,7 @@
                         <th>평형</th>
                         <th>층</th>
                         <th>현재시세</th>
+                        <th>평단가</th>
                         <th>거래일자</th>
                     </tr>
                 </thead>
@@ -90,6 +105,33 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- 세부정보 모달 -->
+    <div id="detailModal" class="detail-modal" style="display:none;">
+        <div class="detail-modal-content">
+            <div class="detail-modal-header">
+                <h3 id="detailTitle"></h3>
+                <button id="detailCloseBtn" class="detail-close-btn">&times;</button>
+            </div>
+            <div class="detail-modal-body">
+                <div id="detailInfo" class="detail-info"></div>
+                <h4>거래 내역</h4>
+                <div class="detail-table-wrap">
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>거래일</th>
+                                <th>층</th>
+                                <th>거래금액</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTradeList"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
