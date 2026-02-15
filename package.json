@@ -21,7 +21,7 @@
       "index.html",
       "app.js",
       "style.css",
-      "mockData.js"
+      "config.txt"
     ],
     "outputPath": "dist"
   }
