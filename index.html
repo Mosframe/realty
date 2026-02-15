@@ -100,6 +100,7 @@
                     </tr>
                 </thead>
                 <tbody>
+
                     <tr>
                         <td colspan="6" class="no-data">동을 선택하고 조회 버튼을 클릭하세요</td>
                     </tr>
@@ -108,14 +109,15 @@
         </div>
     </div>
 
-    <!-- 세부정보 모달 -->
-    <div id="detailModal" class="detail-modal" style="display:none;">
-        <div class="detail-modal-content">
-            <div class="detail-modal-header">
+
+    <!-- 세부정보 패널 팝업 오버레이 -->
+    <div id="detailPanelOverlay" class="detail-panel-overlay" style="display:none;">
+        <div id="detailPanel" class="detail-panel">
+            <div class="detail-panel-header">
                 <h3 id="detailTitle"></h3>
                 <button id="detailCloseBtn" class="detail-close-btn">&times;</button>
             </div>
-            <div class="detail-modal-body">
+            <div class="detail-panel-body">
                 <div id="detailInfo" class="detail-info"></div>
                 <h4>거래 내역</h4>
                 <div class="detail-table-wrap">

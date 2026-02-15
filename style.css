@@ -564,148 +564,28 @@ h2 {
         }
     }
 
-    /* 세부정보 모달 */
-    .detail-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        /* animation removed */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
     }
 
-    /* keyframes fadeIn removed */
+    @keyframes popupUp {
+        from {
+            transform: translateY(40px) scale(0.98);
+            opacity: 0;
+        }
 
-    .detail-modal-content {
-        background: white;
-        border-radius: 12px;
-        width: 90%;
-        max-width: 600px;
-        max-height: 80vh;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-        /* animation removed */
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
     }
 
-    /* keyframes slideUp removed */
-
-    .detail-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px 20px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .detail-modal-header h3 {
-        margin: 0;
-        font-size: 17px;
-        color: #2c3e50;
-    }
-
-    .detail-close-btn {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #999;
-        padding: 0 4px;
-        line-height: 1;
-    }
-
-    .detail-close-btn:hover {
-        color: #333;
-    }
-
-    .detail-modal-body {
-        padding: 8px 10px;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .detail-modal-body h4 {
-        margin: 16px 0 8px;
-        font-size: 14px;
-        color: #555;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 4px;
-    }
-
-    .detail-info {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        font-size: 13px;
-    }
-
-    .detail-info-item {
-        display: flex;
-        gap: 6px;
-    }
-
-    .detail-info-item .label {
-        color: #888;
-        min-width: 60px;
-        flex-shrink: 0;
-    }
-
-    .detail-info-item .value {
-        color: #333;
-        font-weight: 600;
-    }
-
-    .detail-table-wrap {
-        overflow-y: auto;
-        max-height: 45vh;
-    }
-
-    .detail-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-
-    .detail-table th {
-        background: #f8f9fa;
-        padding: 8px 10px;
-        text-align: center;
-        font-weight: 600;
-        color: #555;
-        position: sticky;
-        top: 0;
-        border-bottom: 2px solid #ddd;
-    }
-
-    .detail-table td {
-        padding: 4px 6px;
-        text-align: center;
-        border-bottom: 1px solid #eee;
-    }
-
-    .detail-table tbody tr:hover {
-        background: #f0f8ff;
-    }
-
-    .detail-table .trade-price {
-        color: #e74c3c;
-        font-weight: 700;
-    }
-
-    .detail-table .trade-highest {
-        background-color: #fff8e1;
-    }
-
-    .detail-loading {
-        text-align: center;
-        padding: 30px;
-        color: #999;
-    }
 
     /* 클릭 가능 행 커서 */
     .table tbody tr[data-key] {
@@ -753,4 +633,164 @@ h2 {
     #stopBtn {
         min-height: 32px;
     }
+}
+
+/* 세부정보 패널 팝업 중앙 배치 */
+.detail-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 2000;
+    display: none;
+}
+
+.detail-panel-overlay.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s;
+    overflow: hidden;
+}
+
+.detail-panel-overlay.active {
+    display: flex;
+}
+
+.detail-panel {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    border: 1.5px solid #e0e0e0;
+    width: 80vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: popupUp 0.25s cubic-bezier(.23, 1.01, .32, 1);
+    position: relative;
+    margin: auto;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateY(0);
+}
+
+.detail-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 28px 10px 28px;
+    border-bottom: 1px solid #f0f0f0;
+    background: linear-gradient(90deg, #f8fafc 60%, #f0f4f8 100%);
+    border-radius: 18px 18px 0 0;
+}
+
+.detail-panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #2c3e50;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.detail-close-btn {
+    background: none;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: #bbb;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.detail-close-btn:hover {
+    color: #e74c3c;
+}
+
+.detail-panel-body {
+    padding: 16px 28px 0 28px;
+    overflow-y: auto;
+}
+
+.detail-panel-body h4 {
+    margin: 18px 0 10px;
+    font-size: 15px;
+    color: #3498db;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 4px;
+    font-weight: 600;
+}
+
+.detail-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.detail-info-item {
+    display: flex;
+    gap: 6px;
+}
+
+.detail-info-item .label {
+    color: #888;
+    min-width: 60px;
+    flex-shrink: 0;
+}
+
+.detail-info-item .value {
+    color: #333;
+    font-weight: 600;
+}
+
+.detail-table-wrap {
+    overflow-y: auto;
+    max-height: 45vh;
+}
+
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.detail-table th {
+    background: #f8f9fa;
+    padding: 8px 10px;
+    text-align: center;
+    font-weight: 600;
+    color: #555;
+    position: sticky;
+    top: 0;
+    border-bottom: 2px solid #ddd;
+}
+
+.detail-table td {
+    padding: 4px 6px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-table tbody tr:hover {
+    background: #f0f8ff;
+}
+
+.detail-table .trade-price {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.detail-table .trade-highest {
+    background-color: #fff8e1;
+}
+
+.detail-loading {
+    text-align: center;
+    padding: 30px;
+    color: #999;
 }

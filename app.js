@@ -735,19 +735,30 @@ function renderResults(results) {
 }
 
 // ========== 세부정보 모달 ==========
-const detailModal = document.getElementById('detailModal');
+
+
+const detailPanelOverlay = document.getElementById('detailPanelOverlay');
+const detailPanel = document.getElementById('detailPanel');
 const detailTitle = document.getElementById('detailTitle');
 const detailInfo = document.getElementById('detailInfo');
 const detailTradeList = document.getElementById('detailTradeList');
 const detailCloseBtn = document.getElementById('detailCloseBtn');
 
-// 모달 닫기
-detailCloseBtn.addEventListener('click', () => { detailModal.style.display = 'none'; });
-detailModal.addEventListener('click', (e) => {
-    if (e.target === detailModal) detailModal.style.display = 'none';
+// 패널 닫기 (오버레이, 버튼, ESC)
+function hideDetailPanel() {
+    detailPanelOverlay.classList.remove('active');
+    detailPanelOverlay.style.display = 'none';
+}
+function showDetailPanel() {
+    detailPanelOverlay.classList.add('active');
+    detailPanelOverlay.style.display = 'flex';
+}
+detailCloseBtn.addEventListener('click', hideDetailPanel);
+detailPanelOverlay.addEventListener('click', (e) => {
+    if (e.target === detailPanelOverlay) hideDetailPanel();
 });
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && detailModal.style.display !== 'none') detailModal.style.display = 'none';
+    if (e.key === 'Escape' && detailPanelOverlay.classList.contains('active')) hideDetailPanel();
 });
 
 // 행 클릭 이벤트 (이벤트 위임)
@@ -760,10 +771,11 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
     const complexName = row.dataset.complexName;
     const pyeongName = row.dataset.pyeongName;
 
+
     detailTitle.textContent = `${complexName} ${pyeongName}평`;
     detailInfo.innerHTML = '<div class="detail-loading">정보를 불러오는 중...</div>';
     detailTradeList.innerHTML = '<tr><td colspan="4" class="detail-loading">거래 내역을 불러오는 중...</td></tr>';
-    detailModal.style.display = 'flex';
+    showDetailPanel();
 
     // 단지 정보 + 거래 내역 동시 조회
     const [complexInfo, priceData] = await Promise.all([
