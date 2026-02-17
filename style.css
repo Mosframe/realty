@@ -86,6 +86,13 @@ h2 {
     justify-content: flex-start;
 }
 
+.region {
+    display: flex;
+    width: 40%;
+    align-items: center;
+    gap: 8px;
+}
+
 .form-group {
     flex: 1;
     margin-bottom: 0;
@@ -484,6 +491,14 @@ h2 {
 }
 
 .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.filter-row1 {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
