@@ -1,5 +1,6 @@
 ## cookie:PROP_TEST_KEY=1771155677468.16883c865e857a97b539b90d3a564bbe438f442f6c0e14ac7e03b16cbeae90ce;
 ## cookie:PROP_TEST_KEY=1770977799430.551d3eddd43512a1afd41356bfaa7f4d98edd6f02a57905dd1708c1cc9357d56;
+## cookie:PROP_TEST_KEY=1771335057714.df4aacbeea52e30aac6cc6e8af4277d7dfac9f8bffb04b80986e20ad3bfb5ee1;
 
 ### 시/도 조회
 GET https://new.land.naver.com/api/regions/list?cortarNo=0000000000
