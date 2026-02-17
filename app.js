@@ -166,6 +166,8 @@ const districtSelect = document.getElementById('district');
 const dongSelect = document.getElementById('dong');
 const searchBtn = document.getElementById('searchBtn');
 
+var searchState = 'idle'; // 'idle', 'searching', 'paused'
+
 // 조회중일 때 옵션 비활성화, 그 외엔 활성화
 function updateFilterDisabled() {
     const disabled = searchState === 'searching';
@@ -204,14 +206,14 @@ function updateSearchBtn() {
     const excelBtn = document.getElementById('excelDownloadBtn');
     const copyBtn = document.getElementById('copyClipboardBtn');
     if (excelBtn) {
-        if (searchState === 'idle') {
+        if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
             excelBtn.style.display = '';
         } else {
             excelBtn.style.display = 'none';
         }
     }
     if (copyBtn) {
-        if (searchState === 'idle') {
+        if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
             copyBtn.style.display = '';
         } else {
             copyBtn.style.display = 'none';
@@ -247,81 +249,29 @@ const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
 
-// 토큰 만료일 표시 + 버전 표시 + 자동 업데이트
-(function initTokenExpiry() {
-    const el = document.getElementById('tokenExpiryText');
-    const refreshBtn = document.getElementById('tokenRefreshBtn');
-
-    async function updateTokenExpiry() {
-        try {
-            const res = await fetch('/api/token-info');
-            const data = await res.json();
-            if (data.version) {
-                document.getElementById('appVersion').textContent = `v${data.version}`;
-            }
-            if (data.expDate) {
-                const exp = new Date(data.expDate);
-                const now = new Date();
-                const diffMs = exp - now;
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                const dateStr = exp.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                if (diffMs <= 0) {
-                    el.textContent = `만료됨 (${dateStr})`;
-                    el.parentElement.className = 'token-expiry expired';
-                } else if (diffHours < 1) {
-                    el.textContent = `${diffMins}분 후 만료 (${dateStr})`;
-                    el.parentElement.className = 'token-expiry expiring-soon';
-                } else {
-                    el.textContent = `토큰 만료: ${dateStr}`;
-                    el.parentElement.className = 'token-expiry';
-                }
-            } else {
-                el.textContent = '토큰 없음';
-                el.parentElement.className = 'token-expiry expired';
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    refreshBtn.addEventListener('click', async () => {
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = '⏳';
-        try {
-            const res = await fetch('/api/token-refresh');
-            const data = await res.json();
-            if (data.success) {
-                await updateTokenExpiry();
-            } else {
-                el.textContent = `갱신 실패: ${data.message}`;
-                el.parentElement.className = 'token-expiry expired';
-            }
-        } catch (e) {
-            el.textContent = '갱신 실패';
-            el.parentElement.className = 'token-expiry expired';
-        } finally {
-            refreshBtn.disabled = false;
-            refreshBtn.textContent = '↻';
-        }
-    });
-
-    updateTokenExpiry(); // 자동 갱신 중지: setInterval 제거
-})();
 
 // Set default date range (1 month ago ~ today)
 (function setDefaultDateRange() {
+
     const today = new Date();
     const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(today.getMonth() - 1);
-    dateToInput.value = today.toISOString().split('T')[0];
-    dateFromInput.value = oneMonthAgo.toISOString().split('T')[0];
+    oneMonthAgo.setMonth(today.getMonth() - 3);
+
+    // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
+    const dateTo = today.toISOString().slice(0, 10);
+    const dateFrom = oneMonthAgo.toISOString().slice(0, 10);
+
+    dateToInput.value = dateTo;
+    dateFromInput.value = dateFrom;
 })();
 
 // Helper function to make API calls with timeout and retry
-async function fetchAPI(url, retries = 2) {
-    // 네이버 API 요청 간 100ms 지연
-    await new Promise(r => setTimeout(r, 100));
+async function fetchAPI(url, retries = 3) {
+
+    // (호출부에서 100ms 대기)
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -418,6 +368,7 @@ function getSelectedValue(selectEl) {
 
 async function loadSido(defaultValue) {
     try {
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=0000000000`);
 
         sidoSelect.innerHTML = '<option value="">시도 선택</option>';
@@ -449,6 +400,7 @@ async function loadSido(defaultValue) {
 async function loadDistrict(cortarNo, defaultValue) {
     try {
         showLoading(true);
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${cortarNo}`);
 
         districtSelect.innerHTML = '<option value="">시/군/구 선택</option>';
@@ -483,6 +435,7 @@ async function loadDistrict(cortarNo, defaultValue) {
 async function loadDong(cortarNo, defaultValue) {
     try {
         showLoading(true);
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${cortarNo}`);
 
         dongSelect.innerHTML = '<option value="">동 선택</option>';
@@ -516,6 +469,7 @@ async function loadDong(cortarNo, defaultValue) {
 // Load apartment complexes
 async function loadComplexes(cortarNo) {
     try {
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/regions/complexes?cortarNo=${cortarNo}&realEstateType=APT:PRE:ABYG:JGC&order=`);
         return data.complexList || [];
     } catch (err) {
@@ -527,6 +481,7 @@ async function loadComplexes(cortarNo) {
 // Get complex info including area list
 async function getComplexInfo(complexNo) {
     try {
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/complexes/${complexNo}?complexNo=${complexNo}&initial=Y`);
         return data;
     } catch (err) {
@@ -536,9 +491,23 @@ async function getComplexInfo(complexNo) {
 }
 
 // Get real transaction prices
-async function getRealPrices(complexNo, areaNo) {
+async function getRealPrices(complexNo, areaNo, all) {
     try {
+        await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/complexes/${complexNo}/prices/real?complexNo=${complexNo}&tradeType=A1&year=5&priceChartChange=false&areaNo=${areaNo}&type=table`);
+        if (all) {
+
+            let addedRowCount = data.addedRowCount;
+            let totalRowCount = data.totalRowCount;
+            while (addedRowCount < totalRowCount) {
+
+                const data2 = await fetchAPI(`${API_BASE_URL}/complexes/${complexNo}/prices/real?complexNo=${complexNo}&tradeType=A1&year=5&priceChartChange=false&areaNo=${areaNo}&type=table&addedRowCount=${addedRowCount}`);
+                data.realPriceOnMonthList = data.realPriceOnMonthList.concat(data2.realPriceOnMonthList);
+                addedRowCount = data2.addedRowCount;
+                totalRowCount = data2.totalRowCount;
+            }
+        }
+
         return data;
     } catch (err) {
         console.error('Failed to load real prices:', err);
@@ -624,13 +593,17 @@ function renderResults(results) {
     if (topOnlyCheckbox.checked) {
         const bestPerPyeong = new Map();
         results.forEach(r => {
-            if (r.price && r.pyeongName) {
-                const pyeong = parseFloat(r.pyeongName);
-                if (pyeong && !isNaN(pyeong)) {
-                    const per = r.price / pyeong;
-                    if (!bestPerPyeong.has(r.complexName) || per > bestPerPyeong.get(r.complexName).per) {
-                        bestPerPyeong.set(r.complexName, { per, row: r });
-                    }
+            const pyeong = parseFloat(r.pyeongName);
+            // 거래가 있는 경우 평단가 기준, 없는 경우 noPrice 기준으로도 포함
+            if (r.price && pyeong && !isNaN(pyeong)) {
+                const per = r.price / pyeong;
+                if (!bestPerPyeong.has(r.complexName) || per > bestPerPyeong.get(r.complexName).per) {
+                    bestPerPyeong.set(r.complexName, { per, row: r });
+                }
+            } else if (r.noPrice) {
+                // 거래가 없는 단지/평형도 반드시 포함
+                if (!bestPerPyeong.has(r.complexName)) {
+                    bestPerPyeong.set(r.complexName, { per: -1, row: r });
                 }
             }
         });
@@ -681,18 +654,23 @@ function renderResults(results) {
         let nameBadge = ''; // 시세 옆: 최고가
         let dateBadge = '';  // 날짜 옆: NEW
         if (hasPrice && result.date) {
-            // NEW: 어제 00:00 이후 거래
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            yesterday.setHours(0, 0, 0, 0);
+            let badgeBaseDate = new Date();
+            if (newBadgeDateInput && newBadgeDateInput.value) {
+                badgeBaseDate = new Date(newBadgeDateInput.value);
+            }
             const tradeDate = new Date(result.date.replace(/\./g, '-'));
-            if (tradeDate >= yesterday) {
+            if (tradeDate >= badgeBaseDate) {
                 dateBadge = ' <span class="badge-today">NEW</span>';
             }
             // 최고가: 같은 단지+평형 전체 기간 최고가
             if (result.isHighest) {
                 nameBadge = ' <span class="badge-new">최고가</span>';
             }
+        }
+        // 만약 거래내역이 여러 개라면, 어제 0시 이후 거래가 있는지 추가로 판별
+        if (!dateBadge && result._complexNo && result._areaNo && result.price === null && !result.noPrice) {
+            // 거래내역이 있으나 범위 내 거래가 없는 경우
+            // getRealPrices에서 받은 데이터 활용 필요(추가 구현 가능)
         }
 
         // 평단가 계산 (price per pyeong)
@@ -715,10 +693,10 @@ function renderResults(results) {
             <td class="rank-cell">${hasPrice ? rank : '-'}</td>
             <td>${result.complexName}</td>
             <td>${result.pyeongName}평</td>
-            <td>${hasPrice ? result.floor + '층' : '-'}</td>
-            <td class="price-flex">${result.noPrice ? '<span class="no-price">최근시세 없음</span>' : (hasPrice ? `<span class="badge-area">${nameBadge}</span><span class="price-value${result.isHighest ? ' price-highest' : ''}">${formatPrice(result.price)}</span>` : '<span class="price-loading">조회 중...</span>')}</td>
-            <td class="price-per-pyeong-cell">${hasPrice && pricePerPyeong ? pricePerPyeong : '-'}</td>
-            <td>${hasPrice ? result.date + dateBadge : '-'}</td>
+            <td>${hasPrice ? result.floor + '층' : (result.noPrice ? '거래없음' : '-')}</td>
+            <td class="price-flex">${result.noPrice ? '<span class="no-price">거래없음</span>' : (hasPrice ? `<span class="badge-area">${nameBadge}</span><span class="price-value${result.isHighest ? ' price-highest' : ''}">${formatPrice(result.price)}</span>` : '<span class="price-loading">조회 중...</span>')}</td>
+            <td class="price-per-pyeong-cell">${hasPrice && pricePerPyeong ? pricePerPyeong : (result.noPrice ? '거래없음' : '-')}</td>
+            <td>${hasPrice ? result.date + dateBadge : (result.noPrice ? '거래없음' : '-')}</td>
         `;
         fragment.appendChild(row);
     });
@@ -735,30 +713,19 @@ function renderResults(results) {
 }
 
 // ========== 세부정보 모달 ==========
-
-
 const detailPanelOverlay = document.getElementById('detailPanelOverlay');
-const detailPanel = document.getElementById('detailPanel');
 const detailTitle = document.getElementById('detailTitle');
 const detailInfo = document.getElementById('detailInfo');
 const detailTradeList = document.getElementById('detailTradeList');
 const detailCloseBtn = document.getElementById('detailCloseBtn');
 
-// 패널 닫기 (오버레이, 버튼, ESC)
-function hideDetailPanel() {
-    detailPanelOverlay.classList.remove('active');
-    detailPanelOverlay.style.display = 'none';
-}
-function showDetailPanel() {
-    detailPanelOverlay.classList.add('active');
-    detailPanelOverlay.style.display = 'flex';
-}
-detailCloseBtn.addEventListener('click', hideDetailPanel);
+// 모달 닫기
+detailCloseBtn.addEventListener('click', () => { detailPanelOverlay.style.display = 'none'; });
 detailPanelOverlay.addEventListener('click', (e) => {
-    if (e.target === detailPanelOverlay) hideDetailPanel();
+    if (e.target === detailPanelOverlay) detailPanelOverlay.style.display = 'none';
 });
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && detailPanelOverlay.classList.contains('active')) hideDetailPanel();
+    if (e.key === 'Escape' && detailPanelOverlay.style.display !== 'none') detailPanelOverlay.style.display = 'none';
 });
 
 // 행 클릭 이벤트 (이벤트 위임)
@@ -771,16 +738,15 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
     const complexName = row.dataset.complexName;
     const pyeongName = row.dataset.pyeongName;
 
-
     detailTitle.textContent = `${complexName} ${pyeongName}평`;
     detailInfo.innerHTML = '<div class="detail-loading">정보를 불러오는 중...</div>';
     detailTradeList.innerHTML = '<tr><td colspan="4" class="detail-loading">거래 내역을 불러오는 중...</td></tr>';
-    showDetailPanel();
+    detailPanelOverlay.style.display = 'flex';
 
     // 단지 정보 + 거래 내역 동시 조회
     const [complexInfo, priceData] = await Promise.all([
         getComplexInfo(complexNo),
-        getRealPrices(complexNo, areaNo)
+        getRealPrices(complexNo, areaNo, true)
     ]);
 
     // 단지 기본 정보 표시
@@ -926,8 +892,6 @@ async function searchRealEstate(resume = false) {
                 showSearchStatus('');
                 return;
             }
-            const pyeongMin = pyeongMinInput.value ? parseInt(pyeongMinInput.value) : null;
-            const pyeongMax = pyeongMaxInput.value ? parseInt(pyeongMaxInput.value) : null;
             // 단지+평형 목록만
             const pendingItems = [];
             for (const complex of allComplexes) {
@@ -973,9 +937,15 @@ async function searchRealEstate(resume = false) {
                 // 가격 조회
                 const priceData = await getRealPrices(item.complexNo, area.pyeongNo);
                 let priceInfo = null;
+                let hasDeal = false;
                 if (priceData) {
                     priceInfo = calculateCurrentPrice(priceData, dateFromInput.value ? new Date(dateFromInput.value) : null, dateToInput.value ? new Date(dateToInput.value) : null);
+                    // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
+                    if (priceData.realPriceOnMonthList && priceData.realPriceOnMonthList.some(m => m.realPriceList && m.realPriceList.length > 0)) {
+                        hasDeal = true;
+                    }
                 }
+                // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
                 results.push({
                     complexName: item.complexName,
                     pyeongName: area.pyeongName2 || area.pyeongName,
@@ -985,7 +955,7 @@ async function searchRealEstate(resume = false) {
                     isHighest: priceInfo ? priceInfo.isHighest : false,
                     _complexNo: item.complexNo,
                     _areaNo: area.pyeongNo,
-                    noPrice: !priceInfo
+                    noPrice: hasDeal ? !priceInfo : true
                 });
                 renderResults(results);
             }
@@ -1075,14 +1045,46 @@ let DEFAULTS = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
+
+    // NEW 뱃지 기준일 기본값: dateTo의 1일 전
+    const newBadgeDateInput = document.getElementById('newBadgeDateInput');
+    if (dateToInput && newBadgeDateInput) {
+        let baseDate = null;
+        if (dateToInput.value) {
+            baseDate = new Date(dateToInput.value);
+        } else {
+            baseDate = new Date();
+        }
+
+        // 30일 전으로 설정
+        baseDate.setDate(baseDate.getDate() - 30);
+        baseDate.setHours(0, 0, 0, 0);
+        // yyyy-MM-dd 포맷
+        const yyyy = baseDate.getFullYear();
+        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(baseDate.getDate()).padStart(2, '0');
+        newBadgeDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 1초 지연
+    await new Promise(r => setTimeout(r, 100));
+
+    console.log("시작.....");
+
     // 서버에서 기본값 로드
     try {
-        const res = await fetch('/api/token-info');
+        const res = await fetch('/api/config');
         const data = await res.json();
         if (data.defaults) {
             DEFAULTS = { ...DEFAULTS, ...data.defaults };
         }
+
+        const appVersion = document.getElementById('appVersion');
+        if (appVersion) appVersion.textContent = data.version;
+
     } catch (e) { /* ignore */ }
+
+    console.log({ DEFAULTS });
 
     // Set pyeong defaults
     if (DEFAULTS.pyeongMin) pyeongMinInput.value = DEFAULTS.pyeongMin;

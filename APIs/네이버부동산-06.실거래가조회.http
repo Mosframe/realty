@@ -1,5 +1,5 @@
 ### 실거래가 조회 (첫페이지)
-GET https://new.land.naver.com/api/complexes/113039/prices/real?complexNo=113039&year=5&tradeType=A1&areaNo=1&type=table
+GET https://new.land.naver.com/api/complexes/113039/prices/real?complexNo=128133&year=5&tradeType=A1&areaNo=1&type=table
 accept:*/*
 accept-encoding:gzip, deflate, br, zstd
 accept-language:ko;q=0.7

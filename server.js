@@ -23,14 +23,46 @@ function loadConfig() {
     } catch (e) {
         console.warn(`config.txt를 찾을 수 없습니다 (${configPath}). 기본값을 사용합니다.`);
     }
+    console.log({ config });
     return config;
+}
+function loadConfigJson(onSuccess, onError) {
+
+    const url = 'https://mosframe.github.io/realty/config.json';
+    https.get(url).on('response', (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+            data += chunk;
+        });
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                //console.log('config.json 로드 완료:', json);
+                if (onSuccess) onSuccess(json);
+            } catch (e) {
+                console.error('config.json 파싱 오류:', e);
+                if (onError) onError(e);
+            }
+        });
+    }).on('error', (err) => {
+        console.error('config.json 로드 실패:', err);
+        if (onError) onError(err);
+    });
+
 }
 
 const config = loadConfig();
+let configJson = {};
+loadConfigJson(
+    (json) => {
+        configJson = json;
+    },
+    (err) => {
+        console.error('config.json 로드 실패:', err);
+    }
+);
 const PORT = parseInt(config.PORT) || 3000;
 const API_BASE_URL = 'new.land.naver.com';
-const BEARER_TOKEN = config.NAVER_LAND_TOKEN || '';
-const COOKIE = config.NAVER_COOKIE || '';
 
 
 // MIME types
@@ -48,6 +80,11 @@ const mimeTypes = {
 
 // Proxy API requests to Naver Land or return mock data
 function proxyAPIRequest(apiPath, res) {
+
+    const BEARER_TOKEN = configJson.TOKEN || '';
+    const COOKIE = configJson.COOKIE || '';
+
+    //console.log({ apiPath, BEARER_TOKEN, COOKIE });
 
     // Fall back to real API call
     const options = {
@@ -137,12 +174,33 @@ const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    // 설정값 얻기
+    if (pathname === '/api/config') {
+        const pkg = require('./package.json');
+        const defaults = {
+            sido: config['기본_시도'] || config.DEFAULT_SIDO || '',
+            district: config['기본_시군구'] || config.DEFAULT_DISTRICT || '',
+            dong: config['기본_동'] || config.DEFAULT_DONG || '',
+            pyeongMin: config['기본_최소평형'] || config.DEFAULT_PYEONG_MIN || '',
+            pyeongMax: config['기본_최대평형'] || config.DEFAULT_PYEONG_MAX || '',
+            dateFrom: config['기본_시작일자'] || config.DEFAULT_DATE_FROM || '',
+            dateTo: config['기본_종료일자'] || config.DEFAULT_DATE_TO || '',
+            topOnly: config['기본_단지별최고가만'] || config.DEFAULT_TOP_ONLY || 'false'
+        };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ version: pkg.version, defaults }));
+        return;
+    }
+
+
     // Handle API proxy requests
     if (pathname.startsWith('/api/')) {
         const apiPath = pathname + (parsedUrl.search || '');
         proxyAPIRequest(apiPath, res);
         return;
     }
+
+
 
     // Handle static files
     let filePath = path.join(__dirname, pathname);
@@ -173,6 +231,7 @@ server.listen(PORT, () => {
 
     console.log(`Server running at http://localhost:${PORT}/`);
     console.log('Press Ctrl+C to stop the server');
+
     const { exec } = require('child_process');
     exec(`start http://localhost:${PORT}`);
 });

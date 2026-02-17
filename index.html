@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부동산 실거래가 랭킹</title>
+    <title>아파트 실거래가 순위</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,32 +12,33 @@
     <div class="container">
         <div class="header-row">
             <div id="appVersion" class="app-version"></div>
-            <h1>부동산 실거래가 랭킹</h1>
-            <div id="tokenExpiry" class="token-expiry">
-                <span id="tokenExpiryText"></span>
-                <button id="tokenRefreshBtn" class="token-refresh-btn" title="토큰 갱신">↻</button>
-            </div>
+            <h1>아파트 실거래가 순위</h1>
         </div>
 
+        <div class="controls filter-row" id="regionGroups">
+            <div class="region-group">
+                <div class="form-group">
+                    <label for="sido">시도</label>
+                    <select id="sido" class="form-control">
+                        <option value="">시도 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="district">시/군/구</label>
+                    <select id="district" class="form-control" disabled>
+                        <option value="">시/군/구 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="dong">동</label>
+                    <select id="dong" class="form-control" disabled>
+                        <option value="">동 선택</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="controls filter-row">
-            <div class="form-group">
-                <label for="sido">시도</label>
-                <select id="sido" class="form-control">
-                    <option value="">시도 선택</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="district">시/군/구</label>
-                <select id="district" class="form-control" disabled>
-                    <option value="">시/군/구 선택</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="dong">동</label>
-                <select id="dong" class="form-control" disabled>
-                    <option value="">동 선택</option>
-                </select>
-            </div>
+            <button id="addRegionBtn" class="btn btn-secondary" type="button">지역추가</button>
             <div class="form-group pyeong-filter">
                 <label>평형 범위</label>
                 <div class="pyeong-range">
@@ -56,6 +57,10 @@
                     <span class="pyeong-separator">~</span>
                     <input type="date" id="dateTo" class="form-control date-input">
                 </div>
+            </div>
+            <div class="form-group" style="max-width:160px;">
+                <label for="newBadgeDateInput">NEW 기준일</label>
+                <input type="date" id="newBadgeDateInput" class="form-control" style="width:120px;">
             </div>
         </div>
         <div class="controls filter-row2">
