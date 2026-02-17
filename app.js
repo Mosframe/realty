@@ -8,6 +8,9 @@ function copyTableToClipboard() {
     const sido = sidoSelect.options[sidoSelect.selectedIndex]?.text || '';
     const district = districtSelect.options[districtSelect.selectedIndex]?.text || '';
     const dong = dongSelect.options[dongSelect.selectedIndex]?.text || '';
+    const sido2 = sidoSelect2.options[sidoSelect2.selectedIndex]?.text || '';
+    const district2 = districtSelect2.options[districtSelect2.selectedIndex]?.text || '';
+    const dong2 = dongSelect2.options[dongSelect2.selectedIndex]?.text || '';
     const pyeongMin = pyeongMinInput.value;
     const pyeongMax = pyeongMaxInput.value;
     const dateFrom = dateFromInput.value;
@@ -15,7 +18,8 @@ function copyTableToClipboard() {
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
     const conds = [
         `조회일자: ${dateStr}`,
-        `지역: ${sido} ${district} ${dong}`.trim(),
+        `지역1: ${sido} ${district} ${dong}`.trim(),
+        `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
@@ -62,6 +66,9 @@ function exportTableToExcel() {
     const sido = sidoSelect.options[sidoSelect.selectedIndex]?.text || '';
     const district = districtSelect.options[districtSelect.selectedIndex]?.text || '';
     const dong = dongSelect.options[dongSelect.selectedIndex]?.text || '';
+    const sido2 = sidoSelect2.options[sidoSelect2.selectedIndex]?.text || '';
+    const district2 = districtSelect2.options[districtSelect2.selectedIndex]?.text || '';
+    const dong2 = dongSelect2.options[dongSelect2.selectedIndex]?.text || '';
     const pyeongMin = pyeongMinInput.value;
     const pyeongMax = pyeongMaxInput.value;
     const dateFrom = dateFromInput.value;
@@ -71,7 +78,8 @@ function exportTableToExcel() {
     let insertAt = 0;
     const conds = [
         `조회일자: ${dateStr}`,
-        `지역: ${sido} ${district} ${dong}`.trim(),
+        `지역1: ${sido} ${district} ${dong}`.trim(),
+        `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
@@ -89,6 +97,7 @@ function exportTableToExcel() {
     // 컬럼 넓이 지정 (웹과 유사하게)
     ws['!cols'] = [
         { wch: 6 },   // 순위
+        { wch: 10 },  // 지역
         { wch: 18 },  // 아파트명
         { wch: 8 },   // 평형
         { wch: 6 },   // 층
@@ -161,9 +170,15 @@ const API_BASE_URL = '/api';
 let currentCortarNo = null;
 
 // DOM Elements
+const region1 = document.getElementById('region1');
+const region2 = document.getElementById('region2');
+
 const sidoSelect = document.getElementById('sido');
 const districtSelect = document.getElementById('district');
 const dongSelect = document.getElementById('dong');
+const sidoSelect2 = document.getElementById('sido2');
+const districtSelect2 = document.getElementById('district2');
+const dongSelect2 = document.getElementById('dong2');
 const searchBtn = document.getElementById('searchBtn');
 
 var searchState = 'idle'; // 'idle', 'searching', 'paused'
@@ -175,6 +190,9 @@ function updateFilterDisabled() {
     sidoSelect.disabled = disabled;
     districtSelect.disabled = disabled;
     dongSelect.disabled = disabled;
+    sidoSelect2.disabled = disabled;
+    districtSelect2.disabled = disabled;
+    dongSelect2.disabled = disabled;
     pyeongMinInput.disabled = disabled;
     pyeongMaxInput.disabled = disabled;
     dateFromInput.disabled = disabled;
@@ -225,6 +243,7 @@ searchBtn.addEventListener('click', async () => {
     if (searchState === 'idle') {
         searchState = 'searching';
         sidoSelect.disabled = true;
+        sidoSelect2.disabled = true;
         updateSearchBtn();
         await searchRealEstate();
     } else if (searchState === 'searching') {
@@ -236,6 +255,7 @@ searchBtn.addEventListener('click', async () => {
         // Resume
         searchState = 'searching';
         sidoSelect.disabled = true;
+        sidoSelect2.disabled = true;
         updateSearchBtn();
         await searchRealEstate(true); // resume
     }
@@ -366,7 +386,8 @@ function getSelectedValue(selectEl) {
     return selectEl.value || '';
 }
 
-async function loadSido(defaultValue) {
+async function loadSido(sidoSelect, defaultValue) {
+
     try {
         await new Promise(r => setTimeout(r, 100));
         const data = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=0000000000`);
@@ -397,7 +418,7 @@ async function loadSido(defaultValue) {
 }
 
 // Load 시/군/구 (District)
-async function loadDistrict(cortarNo, defaultValue) {
+async function loadDistrict(districtSelect, dongSelect, cortarNo, defaultValue) {
     try {
         showLoading(true);
         await new Promise(r => setTimeout(r, 100));
@@ -432,7 +453,7 @@ async function loadDistrict(cortarNo, defaultValue) {
 }
 
 // Load 동 (Neighborhood)
-async function loadDong(cortarNo, defaultValue) {
+async function loadDong(dongSelect, cortarNo, defaultValue) {
     try {
         showLoading(true);
         await new Promise(r => setTimeout(r, 100));
@@ -566,7 +587,7 @@ function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
 
 // 결과 고유 키 생성
 function resultKey(r) {
-    return `${r.complexName}|${r.pyeongName}`;
+    return `${r.region}|${r.complexName}|${r.pyeongName}`;
 }
 
 // 이전 순위 기록 (순위 변동 감지용)
@@ -634,6 +655,7 @@ function renderResults(results) {
         row.dataset.key = key;
         if (result._complexNo) row.dataset.complexNo = result._complexNo;
         if (result._areaNo) row.dataset.areaNo = result._areaNo;
+        row.dataset.region = result.region || '';
         row.dataset.complexName = result.complexName || '';
         row.dataset.pyeongName = result.pyeongName || '';
 
@@ -689,8 +711,10 @@ function renderResults(results) {
                 }
             }
         }
+        const regionClass = result.region === '지역1' ? `region1-label` : `region2-label`;
         row.innerHTML = `
             <td class="rank-cell">${hasPrice ? rank : '-'}</td>
+            <td class="${regionClass}">${result.region}</td>
             <td>${result.complexName}</td>
             <td>${result.pyeongName}평</td>
             <td>${hasPrice ? result.floor + '층' : (result.noPrice ? '거래없음' : '-')}</td>
@@ -843,6 +867,7 @@ function showSearchStatus(text) {
 // Search and display results
 // resume: true면 중단된 지점부터 이어서 조회(여기선 단순히 재시작)
 async function searchRealEstate(resume = false) {
+
     const searchCortarNo = dongSelect.value || districtSelect.value;
     if (!searchCortarNo) {
         showError('시/군/구를 선택해주세요.');
@@ -872,39 +897,53 @@ async function searchRealEstate(resume = false) {
         showSearchStatus('단지 목록 조회 중...');
 
         // ===== Phase 1: 단지 + 평형 목록만 빠르게 수집 =====
-        let allComplexes = [];
         if (!resume || !resumeState.pendingItems) {
-            if (dongSelect.value) {
-                allComplexes = await loadComplexes(dongSelect.value);
-            } else {
-                const dongData = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${districtSelect.value}`);
-                if (dongData.regionList && dongData.regionList.length > 0) {
-                    for (const dong of dongData.regionList) {
-                        if (searchAborted) break;
-                        showSearchStatus(`단지 목록 조회 중... (${dong.cortarName})`);
-                        const complexes = await loadComplexes(dong.cortarNo);
-                        allComplexes = allComplexes.concat(complexes);
+
+            const pendingItems = [];
+
+            let allComplexes = [];
+            const len = sidoSelect2.value && districtSelect2.value ? 2 : 1;
+            for (let r = 0; r < len; ++r) {
+
+                const doingValue = r === 0 ? dongSelect.value : dongSelect2.value;
+                if (doingValue) {
+
+                    allComplexes = await loadComplexes(doingValue);
+
+                } else {
+
+                    const districtSelectValue = r === 0 ? districtSelect.value : districtSelect2.value;
+                    const dongData = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${districtSelectValue}`);
+                    if (dongData.regionList && dongData.regionList.length > 0) {
+                        for (const dong of dongData.regionList) {
+                            if (searchAborted) break;
+                            showSearchStatus(`단지 목록 조회 중... (${dong.cortarName})`);
+                            const complexes = await loadComplexes(dong.cortarNo);
+                            allComplexes = allComplexes.concat(complexes);
+                        }
                     }
                 }
-            }
-            if (allComplexes.length === 0) {
-                resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 지역에 아파트 단지가 없습니다.</td></tr>';
-                showSearchStatus('');
-                return;
-            }
-            // 단지+평형 목록만
-            const pendingItems = [];
-            for (const complex of allComplexes) {
-                if (searchAborted) break;
-                pendingItems.push({
-                    complexNo: complex.complexNo,
-                    complexName: complex.complexName
-                });
+
+                if (allComplexes.length === 0) {
+                    resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 지역에 아파트 단지가 없습니다.</td></tr>';
+                    showSearchStatus('');
+                    return;
+                }
+                // 단지+평형 목록만
+                for (const complex of allComplexes) {
+                    if (searchAborted) break;
+                    pendingItems.push({
+                        region: r === 0 ? "지역1" : "지역2",
+                        complexNo: complex.complexNo,
+                        complexName: complex.complexName
+                    });
+                }
             }
             resumeState.pendingItems = pendingItems;
             resumeState.results = [];
             resumeState.itemIndex = 0;
         }
+
         const pendingItems = resumeState.pendingItems;
         let results = resumeState.results;
         let itemCount = resumeState.itemIndex;
@@ -918,6 +957,7 @@ async function searchRealEstate(resume = false) {
             const complexInfo = await getComplexInfo(item.complexNo);
             if (!complexInfo || !complexInfo.areaList) {
                 results.push({
+                    region: item.region,
                     complexName: item.complexName,
                     pyeongName: '-',
                     floor: null,
@@ -947,6 +987,7 @@ async function searchRealEstate(resume = false) {
                 }
                 // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
                 results.push({
+                    region: item.region,
                     complexName: item.complexName,
                     pyeongName: area.pyeongName2 || area.pyeongName,
                     floor: priceInfo ? priceInfo.floor : null,
@@ -994,11 +1035,10 @@ async function searchRealEstate(resume = false) {
 }
 
 // Event Listeners
-// Event Listeners
 sidoSelect.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
     if (cortarNo) {
-        loadDistrict(cortarNo);
+        loadDistrict(districtSelect, dongSelect, cortarNo);
     } else {
         districtSelect.innerHTML = '<option value="">시/군/구 선택</option>';
         districtSelect.disabled = true;
@@ -1007,11 +1047,23 @@ sidoSelect.addEventListener('change', (e) => {
         searchBtn.disabled = true;
     }
 });
+sidoSelect2.addEventListener('change', (e) => {
+    const cortarNo = e.target.value;
+    if (cortarNo) {
+        loadDistrict(districtSelect2, dongSelect2, cortarNo);
+    } else {
+        districtSelect2.innerHTML = '<option value="">시/군/구 선택</option>';
+        districtSelect2.disabled = true;
+        dongSelect2.innerHTML = '<option value="">동 선택</option>';
+        dongSelect2.disabled = true;
+        searchBtn.disabled = true;
+    }
+});
 
 districtSelect.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
     if (cortarNo) {
-        loadDong(cortarNo);
+        loadDong(dongSelect, cortarNo);
         currentCortarNo = cortarNo;
         searchBtn.disabled = false;
     } else {
@@ -1021,11 +1073,30 @@ districtSelect.addEventListener('change', (e) => {
     }
 });
 
+districtSelect2.addEventListener('change', (e) => {
+    const cortarNo = e.target.value;
+    if (cortarNo) {
+        loadDong(dongSelect2, cortarNo);
+        currentCortarNo = cortarNo;
+        searchBtn.disabled = false;
+    } else {
+        dongSelect2.innerHTML = '<option value="">동 선택</option>';
+        dongSelect2.disabled = true;
+        searchBtn.disabled = true;
+    }
+});
 dongSelect.addEventListener('change', (e) => {
     if (e.target.value) {
         currentCortarNo = e.target.value;
     } else {
         currentCortarNo = districtSelect.value;
+    }
+});
+dongSelect2.addEventListener('change', (e) => {
+    if (e.target.value) {
+        currentCortarNo = e.target.value;
+    } else {
+        currentCortarNo = districtSelect2.value;
     }
 });
 
@@ -1094,11 +1165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
 
     // Load and set region defaults
-    await loadSido(DEFAULTS.sido);
+    await loadSido(sidoSelect, DEFAULTS.sido);
     const sidoVal = getSelectedValue(sidoSelect);
-    if (sidoVal) await loadDistrict(sidoVal, DEFAULTS.district);
+    if (sidoVal) await loadDistrict(districtSelect, dongSelect, sidoVal, DEFAULTS.district);
     const distVal = getSelectedValue(districtSelect);
-    if (distVal) await loadDong(distVal, DEFAULTS.dong);
+    if (distVal) await loadDong(dongSelect, distVal, DEFAULTS.dong);
+
+    await loadSido(sidoSelect2);
 
     // Initialize search button state
     updateSearchBtn();

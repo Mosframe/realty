@@ -58,7 +58,6 @@ h1 {
 
 .container .controls {
     gap: 8px;
-    margin-bottom: 10px;
 }
 
 
@@ -91,6 +90,24 @@ h2 {
     width: 40%;
     align-items: center;
     gap: 8px;
+}
+
+.region1-label {
+    font-weight: 500;
+    background: lightblue;
+    font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+    border: 1px solid gray;
+}
+
+.region2-label {
+    font-weight: 500;
+    background: lightpink;
+    font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+    border: 1px solid gray;
 }
 
 .form-group {
@@ -243,13 +260,13 @@ h2 {
 
 .table th:nth-child(2),
 .table td:nth-child(2) {
-    text-align: left;
+    width: 60px;
+    text-align: center;
 }
 
 .table th:nth-child(3),
 .table td:nth-child(3) {
-    width: 100px;
-    text-align: center;
+    text-align: left;
 }
 
 .table th:nth-child(4),
@@ -260,18 +277,24 @@ h2 {
 
 .table th:nth-child(5),
 .table td:nth-child(5) {
+    width: 100px;
     text-align: right;
-    width: 200px;
 }
 
 .table th:nth-child(6),
 .table td:nth-child(6) {
-    width: 150px;
+    width: 200px;
     text-align: right;
 }
 
 .table th:nth-child(7),
 .table td:nth-child(7) {
+    width: 150px;
+    text-align: center;
+}
+
+.table th:nth-child(8),
+.table td:nth-child(8) {
     width: 150px;
     text-align: center;
 }

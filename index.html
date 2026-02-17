@@ -15,25 +15,49 @@
             <h1>아파트 실거래가 순위</h1>
         </div>
 
+        <div class="controls filter-row1">
+            <div id="region1" class="region">
+                <div class="form-group">
+                    <span class="region1-label">지역1</span>
+                </div>
+                <div class="form-group">
+                    <select id="sido" class="form-control">
+                        <option value="">시도 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="district" class="form-control" disabled>
+                        <option value="">시/군/구 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="dong" class="form-control" disabled>
+                        <option value="">동 선택</option>
+                    </select>
+                </div>
+            </div>
+            <div id="region2" class="region">
+                <div class="form-group">
+                    <span class="region2-label">지역2</span>
+                </div>
+                <div class="form-group">
+                    <select id="sido2" class="form-control">
+                        <option value="">시도 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="district2" class="form-control" disabled>
+                        <option value="">시/군/구 선택</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="dong2" class="form-control" disabled>
+                        <option value="">동 선택</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="controls filter-row">
-            <div class="form-group">
-                <label for="sido">시도</label>
-                <select id="sido" class="form-control">
-                    <option value="">시도 선택</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="district">시/군/구</label>
-                <select id="district" class="form-control" disabled>
-                    <option value="">시/군/구 선택</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="dong">동</label>
-                <select id="dong" class="form-control" disabled>
-                    <option value="">동 선택</option>
-                </select>
-            </div>
             <div class="form-group pyeong-filter">
                 <label>평형 범위</label>
                 <div class="pyeong-range">
@@ -91,6 +115,7 @@
                 <thead>
                     <tr>
                         <th>순위</th>
+                        <th>지역</th>
                         <th>아파트명</th>
                         <th>평형</th>
                         <th>층</th>
