@@ -417,7 +417,7 @@ async function login(id, pw) {
     try {
         await new Promise(r => setTimeout(r, 100));
         const hashedPw = await sha128Hex(pw);
-        const data = await fetchAPI(`${API_BASE_URL}/api/login?id=${id}&pw=${hashedPw}`);
+        const data = await fetchAPI(`${API_BASE_URL}/login?id=${id}&pw=${hashedPw}`);
         if (data.success) {
             return true;
         }

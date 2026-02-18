@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+const BaseURL = 'https://mosframe.github.io/realty';
+
 var isLogin = false;
 
 // config.txt 읽기 (exe 옆 또는 server.js 옆)
@@ -177,9 +179,10 @@ function proxyAPIRequest(apiPath, res) {
     proxyReq.end();
 }
 
-
 // Create HTTP server
 const server = http.createServer((req, res) => {
+
+    console.log(`req: ${req.method} ${req.url}`);
 
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
@@ -188,7 +191,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/login') {
 
         const { id, pw } = parsedUrl.query;
-        https.get(`https://mosframe.github.io/realty/members/${id}`, (resp) => {
+        https.get(`${BaseURL}/members/${id}`, (resp) => {
             let data = '';
             resp.on('data', (chunk) => {
                 data += chunk;
@@ -197,7 +200,6 @@ const server = http.createServer((req, res) => {
                 try {
                     const serverPw = data;
                     console.log({ id, pw, serverPw });
-
                     const success = pw === serverPw;
                     isLogin = success;
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -220,55 +222,93 @@ const server = http.createServer((req, res) => {
     // 설정값 얻기
     if (pathname === '/api/config') {
 
-        const pkg = require('./package.json');
-        const defaults = {
-            sido: config['기본_시도'] || config.DEFAULT_SIDO || '',
-            district: config['기본_시군구'] || config.DEFAULT_DISTRICT || '',
-            dong: config['기본_동'] || config.DEFAULT_DONG || '',
-            pyeongMin: config['기본_최소평형'] || config.DEFAULT_PYEONG_MIN || '',
-            pyeongMax: config['기본_최대평형'] || config.DEFAULT_PYEONG_MAX || '',
-            dateFrom: config['기본_시작일자'] || config.DEFAULT_DATE_FROM || '',
-            dateTo: config['기본_종료일자'] || config.DEFAULT_DATE_TO || '',
-            topOnly: config['기본_단지별최고가만'] || config.DEFAULT_TOP_ONLY || 'false'
-        };
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ version: pkg.version, defaults }));
+        https.get(`${BaseURL}/package.json`, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => {
+                data += chunk;
+            });
+            resp.on('end', () => {
+
+                console.log({ data });
+                const pkg = JSON.parse(data);
+                const defaults = {
+                    sido: config['기본_시도'] || config.DEFAULT_SIDO || '',
+                    district: config['기본_시군구'] || config.DEFAULT_DISTRICT || '',
+                    dong: config['기본_동'] || config.DEFAULT_DONG || '',
+                    pyeongMin: config['기본_최소평형'] || config.DEFAULT_PYEONG_MIN || '',
+                    pyeongMax: config['기본_최대평형'] || config.DEFAULT_PYEONG_MAX || '',
+                    dateFrom: config['기본_시작일자'] || config.DEFAULT_DATE_FROM || '',
+                    dateTo: config['기본_종료일자'] || config.DEFAULT_DATE_TO || '',
+                    topOnly: config['기본_단지별최고가만'] || config.DEFAULT_TOP_ONLY || 'false'
+                };
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ version: pkg.version, defaults }));
+            });
+        }).on('error', (err) => {
+            console.error('설정값 요청 실패:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: '설정값 요청 실패' }));
+        });
+
         return;
     }
 
-
-    // Handle API proxy requests
+    // API 플록시 요청
     if (pathname.startsWith('/api/')) {
+
         const apiPath = pathname + (parsedUrl.search || '');
         proxyAPIRequest(apiPath, res);
         return;
     }
 
+    // 정적 파일들 요청
 
+    const debug = process.argv.includes('--debug') || process.argv.includes('-d');
+    if (debug) {
 
-    // Handle static files
-    let filePath = path.join(__dirname, pathname);
-    if (pathname === '/') {
-        filePath = path.join(__dirname, 'index.html');
+        serveLocalFile();
     }
+    else {
 
-    const extname = String(path.extname(filePath)).toLowerCase();
-    const contentType = mimeTypes[extname] || 'application/octet-stream';
-
-    fs.readFile(filePath, (error, content) => {
-        if (error) {
-            if (error.code === 'ENOENT') {
+        const remoteUrl = `${BaseURL}${pathname}`;
+        https.get(remoteUrl, (remoteRes) => {
+            if (remoteRes.statusCode === 200) {
+                remoteRes.pipe(res);
+            } else {
                 res.writeHead(404, { 'Content-Type': 'text/html' });
                 res.end('<h1>404 Not Found</h1>', 'utf-8');
-            } else {
-                res.writeHead(500);
-                res.end(`Server Error: ${error.code}`, 'utf-8');
             }
-        } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content, 'utf-8');
+        }).on('error', (err) => {
+            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.end('<h1>404 Not Found</h1>', 'utf-8');
+        });
+    }
+
+    function serveLocalFile() {
+
+        let filePath = path.join(__dirname, pathname);
+        if (pathname === '/') {
+            filePath = path.join(__dirname, 'index.html');
         }
-    });
+
+        const extname = String(path.extname(filePath)).toLowerCase();
+        const contentType = mimeTypes[extname] || 'application/octet-stream';
+
+        fs.readFile(filePath, (error, content) => {
+            if (error) {
+                if (error.code === 'ENOENT') {
+                    res.writeHead(404, { 'Content-Type': 'text/html' });
+                    res.end('<h1>404 Not Found</h1>', 'utf-8');
+                } else {
+                    res.writeHead(500);
+                    res.end(`Server Error: ${error.code}`, 'utf-8');
+                }
+            } else {
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(content, 'utf-8');
+            }
+        });
+    }
 });
 
 server.listen(PORT, () => {
