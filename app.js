@@ -403,6 +403,39 @@ function getSelectedValue(selectEl) {
     return selectEl.value || '';
 }
 
+// SHA-128 해시 함수 (SHA-256의 앞 128비트)
+async function sha128Hex(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer).slice(0, 16));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function login(id, pw) {
+
+    try {
+        await new Promise(r => setTimeout(r, 100));
+        const hashedPw = await sha128Hex(pw);
+        const data = await fetchAPI(`${API_BASE_URL}/api/login?id=${id}&pw=${hashedPw}`);
+        if (data.success) {
+            return true;
+        }
+    } catch (err) {
+    }
+    return false;
+}
+
+async function onLogin() {
+
+    await loadSido(sidoSelect, DEFAULTS.sido);
+    const sidoVal = getSelectedValue(sidoSelect);
+    if (sidoVal) await loadDistrict(districtSelect, dongSelect, sidoVal, DEFAULTS.district);
+    const distVal = getSelectedValue(districtSelect);
+    if (distVal) await loadDong(dongSelect, distVal, DEFAULTS.dong);
+    await loadSido(sidoSelect2);
+}
+
 async function loadSido(sidoSelect, defaultValue) {
 
     try {
@@ -901,13 +934,6 @@ function showSearchStatus(text) {
     searchStatus.style.display = text ? 'block' : 'none';
 }
 
-// 검색 중지 제어
-// let searchAborted = false;
-// const stopBtn = document.getElementById('stopBtn');
-// stopBtn.addEventListener('click', () => { searchAborted = true; });
-
-// Search and display results
-// resume: true면 중단된 지점부터 이어서 조회(여기선 단순히 재시작)
 async function searchRealEstate(resume = false) {
 
     const searchCortarNo = dongSelect.value || districtSelect.value;
@@ -1101,7 +1127,6 @@ sidoSelect2.addEventListener('change', (e) => {
         searchBtn.disabled = true;
     }
 });
-
 districtSelect.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
     if (cortarNo) {
@@ -1114,7 +1139,6 @@ districtSelect.addEventListener('change', (e) => {
         searchBtn.disabled = true;
     }
 });
-
 districtSelect2.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
     if (cortarNo) {
@@ -1206,15 +1230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
 
-    // Load and set region defaults
-    await loadSido(sidoSelect, DEFAULTS.sido);
-    const sidoVal = getSelectedValue(sidoSelect);
-    if (sidoVal) await loadDistrict(districtSelect, dongSelect, sidoVal, DEFAULTS.district);
-    const distVal = getSelectedValue(districtSelect);
-    if (distVal) await loadDong(dongSelect, distVal, DEFAULTS.dong);
-
-    await loadSido(sidoSelect2);
-
     // Initialize search button state
     updateSearchBtn();
 
@@ -1236,7 +1251,80 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+
 // ===== 세부정보 패널 드래그 이동 =====
+// ====== 풀스크린 로그인 모달 ======
+function showLoginModal() {
+    // 이미 있으면 중복 생성 방지
+    if (document.getElementById('loginModalOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'loginModalOverlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0,0,0,0.85)';
+    overlay.style.zIndex = '99999';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.innerHTML = `
+        <div id="loginModalPanel" style="background:#fff; border-radius:16px; box-shadow:0 4px 32px rgba(0,0,0,0.2); padding:48px 36px 36px 36px; min-width:340px; min-height:320px; display:flex; flex-direction:column; align-items:center;">
+            <h2 style="margin-bottom:32px; color:#1976d2; font-size:2rem; font-weight:700; letter-spacing:-1px;">Login</h2>
+            <input id="loginUsername" type="text" placeholder="아이디" style="width:220px; margin-bottom:18px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" autofocus />
+            <input id="loginPassword" type="password" placeholder="비밀번호" style="width:220px; margin-bottom:24px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" />
+            <button id="loginBtn" style="width:220px; padding:12px 0; background:#1976d2; color:#fff; font-size:1.1rem; font-weight:600; border:none; border-radius:6px; cursor:pointer; transition:background 0.2s;">로그인</button>
+            <div id="loginError" style="color:#d32f2f; margin-top:18px; min-height:24px; font-size:0.98rem; display:none;"></div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    // 엔터키로 로그인
+    overlay.querySelector('#loginPassword').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') overlay.querySelector('#loginBtn').click();
+    });
+    overlay.querySelector('#loginUsername').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') overlay.querySelector('#loginPassword').focus();
+    });
+    overlay.querySelector('#loginBtn').addEventListener('click', async function () {
+        const username = overlay.querySelector('#loginUsername').value.trim();
+        const password = overlay.querySelector('#loginPassword').value;
+        const errorDiv = overlay.querySelector('#loginError');
+        errorDiv.style.display = 'none';
+        if (!username || !password) {
+            errorDiv.textContent = '아이디와 비밀번호를 입력하세요.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        // 회원가입(수동)
+        if (username === '회원가입') {
+
+            const s = password.split('&');
+            const id = s[0];
+            const pw = s[1];
+            const hashedPw = await sha128Hex(pw);
+            console.log({ id, pw, hashedPw });
+
+        } else {
+            const success = await login(username, password);
+            if (success) {
+                overlay.style.opacity = '1';
+                overlay.style.transition = 'opacity 0.3s';
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+
+                await onLogin();
+
+            } else {
+                errorDiv.textContent = '로그인 정보가 올바르지 않습니다.';
+                errorDiv.style.display = 'block';
+            }
+        }
+    });
+    // 포커스
+    setTimeout(() => overlay.querySelector('#loginUsername').focus(), 100);
+}
+
 (function enableDetailPanelDrag() {
     const overlay = document.getElementById('detailPanelOverlay');
     const panel = document.getElementById('detailPanel');
@@ -1292,3 +1380,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === overlay) resetPanelPosition();
     });
 })();
+
+// ====== 페이지 로드시 로그인 모달 표시 ======
+document.addEventListener('DOMContentLoaded', () => {
+    showLoginModal();
+});

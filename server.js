@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+var isLogin = false;
+
 // config.txt 읽기 (exe 옆 또는 server.js 옆)
 function loadConfig() {
     const config = {};
@@ -80,6 +82,12 @@ const mimeTypes = {
 
 // Proxy API requests to Naver Land or return mock data
 function proxyAPIRequest(apiPath, res) {
+
+    if (!isLogin) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: '로그인이 필요합니다.' }));
+        return;
+    }
 
     const BEARER_TOKEN = configJson.TOKEN || '';
     const COOKIE = configJson.COOKIE || '';
@@ -169,13 +177,49 @@ function proxyAPIRequest(apiPath, res) {
     proxyReq.end();
 }
 
+
 // Create HTTP server
 const server = http.createServer((req, res) => {
+
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    // 로그인
+    if (pathname === '/api/login') {
+
+        const { id, pw } = parsedUrl.query;
+        https.get(`https://mosframe.github.io/realty/members/${id}`, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => {
+                data += chunk;
+            });
+            resp.on('end', () => {
+                try {
+                    const serverPw = data;
+                    console.log({ id, pw, serverPw });
+
+                    const success = pw === serverPw;
+                    isLogin = success;
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success }));
+                } catch (e) {
+                    console.error('회원 정보 파싱 오류:', e);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: '회원 정보 파싱 오류' }));
+                }
+            });
+        }).on('error', (err) => {
+            console.error('회원 정보 요청 실패:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '회원 정보 요청 실패' }));
+        });
+
+        return;
+    }
+
     // 설정값 얻기
     if (pathname === '/api/config') {
+
         const pkg = require('./package.json');
         const defaults = {
             sido: config['기본_시도'] || config.DEFAULT_SIDO || '',
