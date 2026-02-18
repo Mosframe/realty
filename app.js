@@ -161,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         excelBtn.addEventListener('click', exportTableToExcel);
     }
 });
-// ...existing code...
 // API Configuration
 // Use local proxy server to avoid CORS issues
 const API_BASE_URL = '/api';
@@ -754,20 +753,39 @@ function renderResults(results) {
     currentRanks.forEach((r, k) => prevRanks.set(k, r));
 }
 
-// ========== 세부정보 모달 ==========
+// ========== 세부정보 모달 ========== 
 const detailPanelOverlay = document.getElementById('detailPanelOverlay');
 const detailTitle = document.getElementById('detailTitle');
 const detailInfo = document.getElementById('detailInfo');
 const detailTradeList = document.getElementById('detailTradeList');
-const detailCloseBtn = document.getElementById('detailCloseBtn');
+const detailGraphBtn = document.getElementById('detailGraphBtn');
+
+let _lastDetailTrades = null;
+let _lastDetailTitle = '';
 
 // 모달 닫기
 detailCloseBtn.addEventListener('click', () => { detailPanelOverlay.style.display = 'none'; });
 detailPanelOverlay.addEventListener('click', (e) => {
     if (e.target === detailPanelOverlay) detailPanelOverlay.style.display = 'none';
 });
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && detailPanelOverlay.style.display !== 'none') detailPanelOverlay.style.display = 'none';
+
+// 거래내역 가격 추이 그래프 버튼 이벤트
+detailGraphBtn.addEventListener('click', () => {
+
+    if (!_lastDetailTrades || _lastDetailTrades.length === 0) {
+        alert('거래내역이 없습니다.');
+        return;
+    }
+    // 팝업 호출 (외부 js)
+    if (typeof openDetailGraphPopup === 'function') {
+        openDetailGraphPopup(_lastDetailTrades, _lastDetailTitle);
+    } else {
+        // 동적 로드
+        const script = document.createElement('script');
+        script.src = 'detailGraphPopup.js';
+        script.onload = () => openDetailGraphPopup(_lastDetailTrades, _lastDetailTitle);
+        document.body.appendChild(script);
+    }
 });
 
 // 행 클릭 이벤트 (이벤트 위임)
@@ -844,6 +862,10 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
         if (trades.length === 0) {
             detailTradeList.innerHTML = '<tr><td colspan="4" class="detail-loading">거래 내역이 없습니다.</td></tr>';
         } else {
+
+            _lastDetailTrades = Object.assign([], trades).reverse(); // 그래프용은 오름차순
+            _lastDetailTitle = detailTitle.textContent;
+
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             yesterday.setHours(0, 0, 0, 0);
@@ -1270,3 +1292,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === overlay) resetPanelPosition();
     });
 })();
+
+
+function openDetailGraphPopup(trades, title) {
+    // Chart.js CDN 동적 로드
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => openDetailGraphPopup(trades, title);
+        document.body.appendChild(script);
+        return;
+    }
+    // 팝업 생성
+    const width = 600, height = 400;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+    const popup = window.open('', 'detailGraphPopup', `width=${width},height=${height},left=${left},top=${top}`);
+    if (!popup) return alert('팝업 차단을 해제해주세요.');
+    // HTML
+    popup.document.write(`
+        <html><head>
+        <title>${title} - 거래내역 가격 추이</title>
+        <meta charset='utf-8'>
+        <style>body{font-family:sans-serif;margin:0;padding:20px;background:#fff;}h2{font-size:18px;margin-bottom:10px;}#chart{max-width:100%;}</style>
+        <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+        </head><body>
+        <h2>${title} - 거래내역 가격 추이</h2>
+        <canvas id='chart' width='${width - 40}' height='${height - 80}'></canvas>
+        </body></html>
+    `);
+    popup.document.close();
+    // 데이터 준비 (날짜 오름차순)
+    const labels = trades.map(t => t.date);
+    const data = trades.map(t => t.price);
+    // 차트 렌더 (팝업 내)
+    popup.onload = () => {
+        const ctx = popup.document.getElementById('chart').getContext('2d');
+        new popup.Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: '거래금액(만원)',
+                    data,
+                    borderColor: '#4a90e2',
+                    backgroundColor: 'rgba(74,144,226,0.1)',
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#e74c3c',
+                }]
+            },
+            options: {
+                responsive: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: false, ticks: { callback: v => v.toLocaleString() + '만원' } }
+                }
+            }
+        });
+    };
+}

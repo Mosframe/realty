@@ -140,8 +140,12 @@
         <div id="detailPanel" class="detail-panel">
             <div class="detail-panel-header">
                 <h3 id="detailTitle"></h3>
-                <button id="naverLandBtn" class="btn btn-naver" style="margin-right:8px;">네이버부동산에서 보기</button>
-                <button id="detailCloseBtn" class="detail-close-btn">&times;</button>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button id="naverLandBtn" class="btn btn-naver" style="margin-right:8px;">네이버부동산에서 보기</button>
+                    <button id="detailGraphBtn" class="btn btn-graph"><span class="graph-icon">📈</span> 가격 추이
+                        그래프</button>
+                    <button id="detailCloseBtn" class="detail-close-btn">&times;</button>
+                </div>
             </div>
             <div class="detail-panel-body">
                 <div id="detailInfo" class="detail-info"></div>
@@ -164,6 +168,7 @@
     </div>
 
     <script src="app.js"></script>
+    <script src="detailGraphPopup.js"></script>
 </body>
 
 </html>
