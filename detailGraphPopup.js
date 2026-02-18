@@ -29,7 +29,7 @@ function openDetailGraphPopup(trades, title) {
         </body></html>
     `);
     popup.document.close();
-    // 데이터 준비
+    // 데이터 준비 (날짜 오름차순)
     const labels = trades.map(t => t.date);
     const data = trades.map(t => t.price);
     // 차트 렌더 (팝업 내)
