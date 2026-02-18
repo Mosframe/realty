@@ -1275,9 +1275,26 @@ function showLoginModal() {
             <input id="loginUsername" type="text" placeholder="아이디" style="width:220px; margin-bottom:18px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" autofocus />
             <input id="loginPassword" type="password" placeholder="비밀번호" style="width:220px; margin-bottom:24px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" />
             <button id="loginBtn" style="width:220px; padding:12px 0; background:#1976d2; color:#fff; font-size:1.1rem; font-weight:600; border:none; border-radius:6px; cursor:pointer; transition:background 0.2s;">로그인</button>
+            <button id="signupBtn" style="width:220px; padding:12px 0; background:#fff; color:#1976d2; font-size:1.1rem; font-weight:600; border:1px solid #1976d2; border-radius:6px; cursor:pointer; margin-top:10px; transition:background 0.2s;">회원가입</button>
             <div id="loginError" style="color:#d32f2f; margin-top:18px; min-height:24px; font-size:0.98rem; display:none;"></div>
         </div>
     `;
+    // 회원가입 버튼 이벤트
+    overlay.querySelector('#signupBtn').addEventListener('click', async function () {
+        const username = overlay.querySelector('#loginUsername').value.trim();
+        const password = overlay.querySelector('#loginPassword').value;
+        const errorDiv = overlay.querySelector('#loginError');
+        errorDiv.style.display = 'none';
+        if (!username || !password) {
+            errorDiv.textContent = '회원가입을 위해 아이디와 비밀번호를 입력하세요.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        // 회원가입 로직
+        const hashedPw = await sha128Hex(password);
+        errorDiv.innerHTML = `암호화된 비밀번호</br>(<span style="color:blue; font-weight:bold;">${hashedPw}</span>)</br>를 아이디와 함께 관리자에게 전달해주세요.`;
+        errorDiv.style.display = 'block';
+    });
     document.body.appendChild(overlay);
     // 엔터키로 로그인
     overlay.querySelector('#loginPassword').addEventListener('keydown', function (e) {
