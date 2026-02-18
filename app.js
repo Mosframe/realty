@@ -268,7 +268,25 @@ const pyeongMaxInput = document.getElementById('pyeongMax');
 const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
+const naverLandBtn = document.getElementById('naverLandBtn');
+if (naverLandBtn) {
+    naverLandBtn.addEventListener('click', () => {
+        // 마지막으로 열린 상세정보의 complexNo, areaNo를 추적
+        if (window._lastDetailComplexNo) {
 
+            const url = `https://new.land.naver.com/complexes/${window._lastDetailComplexNo}?a=JGC:JGB:ABYG:APT:PRE&e=RETAIL&ad=true`;
+
+            // 새 팝업윈도우에서 열기(창오픈위치:현재윈도우 중심)
+            const width = window.innerWidth * 0.9;
+            const height = window.innerHeight * 0.9;
+            const left = window.screenX + (window.innerWidth - width) / 2;
+            const top = window.screenY + (window.innerHeight - height) / 2;
+            window.open(url, '_blank', `width=${width},height=${height},left=${left},top=${top}`);
+        } else {
+            alert('단지 정보를 찾을 수 없습니다.');
+        }
+    });
+}
 
 // Set default date range (1 month ago ~ today)
 (function setDefaultDateRange() {
@@ -685,9 +703,9 @@ function renderResults(results) {
                 dateBadge = ' <span class="badge-today">NEW</span>';
             }
             // 최고가: 같은 단지+평형 전체 기간 최고가
-            if (result.isHighest) {
-                nameBadge = ' <span class="badge-new">최고가</span>';
-            }
+            //if (result.isHighest) {
+            //    nameBadge = ' <span class="badge-new">최고가</span>';
+            //}
         }
         // 만약 거래내역이 여러 개라면, 어제 0시 이후 거래가 있는지 추가로 판별
         if (!dateBadge && result._complexNo && result._areaNo && result.price === null && !result.noPrice) {
@@ -761,6 +779,8 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
     const areaNo = row.dataset.areaNo;
     const complexName = row.dataset.complexName;
     const pyeongName = row.dataset.pyeongName;
+
+    window._lastDetailComplexNo = complexNo;
 
     detailTitle.textContent = `${complexName} ${pyeongName}평`;
     detailInfo.innerHTML = '<div class="detail-loading">정보를 불러오는 중...</div>';
@@ -1193,3 +1213,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchBtn.click();
     }
 });
+
+// ===== 세부정보 패널 드래그 이동 =====
+(function enableDetailPanelDrag() {
+    const overlay = document.getElementById('detailPanelOverlay');
+    const panel = document.getElementById('detailPanel');
+    const header = document.querySelector('.detail-panel-header');
+    if (!overlay || !panel || !header) return;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let panelX = 0, panelY = 0;
+
+    header.style.cursor = 'move';
+    header.addEventListener('mousedown', function (e) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        // 현재 패널 위치 계산 (transform이 있을 수 있으니 getBoundingClientRect 기준)
+        const rect = panel.getBoundingClientRect();
+        panelX = rect.left;
+        panelY = rect.top;
+        // 드래그 시 크기 고정
+        panel.style.width = rect.width + 'px';
+        panel.style.height = rect.height + 'px';
+        document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', function (e) {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        // 패널을 fixed로 이동
+        panel.style.position = 'fixed';
+        panel.style.left = (panelX + dx) + 'px';
+        panel.style.top = (panelY + dy) + 'px';
+        panel.style.margin = '0';
+        panel.style.transform = 'none';
+    });
+    document.addEventListener('mouseup', function () {
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.userSelect = '';
+        }
+    });
+    // 오버레이 클릭/닫기 시 위치 초기화
+    function resetPanelPosition() {
+        panel.style.position = '';
+        panel.style.left = '';
+        panel.style.top = '';
+        panel.style.margin = '';
+        panel.style.transform = '';
+        panel.style.width = '';
+        panel.style.height = '';
+    }
+    document.getElementById('detailCloseBtn').addEventListener('click', resetPanelPosition);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) resetPanelPosition();
+    });
+})();

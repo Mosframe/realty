@@ -748,3 +748,20 @@ h2 {
     padding: 30px;
     color: #999;
 }
+
+.btn-naver {
+    background: #19ce60;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 4px;
+}
+
+.btn-naver:hover {
+    background: #13b152;
+}

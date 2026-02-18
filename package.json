@@ -1,6 +1,6 @@
 {
   "name": "realty",
-  "version": "1.1.54",
+  "version": "1.1.70",
   "description": "아파트 실거래가 순위 사이트",
   "main": "server.js",
   "bin": "server.js",
