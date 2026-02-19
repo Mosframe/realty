@@ -1,13 +1,14 @@
 {
   "name": "realty",
-  "version": "1.1.98",
+  "version": "1.1.3",
   "description": "아파트 실거래가 순위 사이트",
   "main": "server.js",
   "bin": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js --debug",
-    "build": "npm version patch --no-git-tag-version && npx pkg . --targets node18-win-x64 --output dist/realty.exe && copy config.txt dist\\config.txt"
+    "build": "npm version patch --no-git-tag-version && npx pkg . --targets node18-win-x64 --output dist/realty.exe && copy config.txt dist\\config.txt",
+    "postbuild": "node zip.js"
   },
   "keywords": [
     "realty",
@@ -19,5 +20,8 @@
   "pkg": {
     "assets": [],
     "outputPath": "dist"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1"
   }
 }

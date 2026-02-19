@@ -195,7 +195,7 @@ function updateFilterDisabled() {
     pyeongMinInput.disabled = disabled;
     pyeongMaxInput.disabled = disabled;
     dateFromInput.disabled = disabled;
-    dateToInput.disabled = disabled;
+    dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
     // 조회 버튼은 별도 로직에서 관리
 }
@@ -403,12 +403,12 @@ function getSelectedValue(selectEl) {
     return selectEl.value || '';
 }
 
-// SHA-128 해시 함수 (SHA-256의 앞 128비트)
-async function sha128Hex(str) {
+// SHA-256 해시 함수
+async function sha256Hex(str) {
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
     const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer).slice(0, 16));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -416,7 +416,7 @@ async function login(id, pw) {
 
     try {
         await new Promise(r => setTimeout(r, 100));
-        const hashedPw = await sha128Hex(pw);
+        const hashedPw = await sha256Hex(pw);
         const data = await fetchAPI(`${API_BASE_URL}/login?id=${id}&pw=${hashedPw}`);
         if (data.success) {
             return true;
@@ -1291,8 +1291,8 @@ function showLoginModal() {
             return;
         }
         // 회원가입 로직
-        const hashedPw = await sha128Hex(password);
-        errorDiv.innerHTML = `암호화된 비밀번호</br>(<span style="color:blue; font-weight:bold;">${hashedPw}</span>)</br>를 아이디와 함께 관리자에게 전달해주세요.`;
+        const hashedPw = await sha256Hex(password);
+        errorDiv.innerHTML = `회원가입은 관리자에게 문의하세요.</br>암호화된 비밀번호: <span style="color:blue; font-weight:bold;">${hashedPw}</span>`;
         errorDiv.style.display = 'block';
     });
     document.body.appendChild(overlay);
@@ -1319,7 +1319,7 @@ function showLoginModal() {
             const s = password.split('&');
             const id = s[0];
             const pw = s[1];
-            const hashedPw = await sha128Hex(pw);
+            const hashedPw = await sha256Hex(pw);
             console.log({ id, pw, hashedPw });
 
         } else {
