@@ -14,12 +14,12 @@ const output = fs.createWriteStream(outputPath);
 const archive = archiver('zip', { zlib: { level: 9 } });
 
 output.on('close', function () {
-  console.log(archive.pointer() + ' total bytes');
-  console.log(`${outputPath} 파일이 생성되었습니다.`);
+    console.log(archive.pointer() + ' total bytes');
+    console.log(`${outputPath} 파일이 생성되었습니다.`);
 });
 
-archive.on('error', function(err){
-  throw err;
+archive.on('error', function (err) {
+    throw err;
 });
 
 archive.pipe(output);
