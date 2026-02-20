@@ -97,10 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valB = b.dataset[field];
 
                 // 숫자 정렬
-                valA = Number(valA);
-                valB = Number(valB);
-                if (!isNaN(valA) && !isNaN(valB)) {
-                    return (valA - valB) * lastSort.dir;
+                const numA = Number(valA);
+                const numB = Number(valB);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return (numA - numB) * lastSort.dir;
                 }
 
                 // 날짜 정렬
