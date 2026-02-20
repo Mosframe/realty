@@ -5,9 +5,9 @@ const colFieldMap = [
     'region', // col2
     'complexName', // col3
     'pyeongName', // col4
-    'floor', // col5
+    'floorValue', // col5
     'price', // col6
-    'pricePerPyeong', // col7
+    'pricePer', // col7
     'date' // col8
 ];
 
@@ -92,12 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // lastResults 값이 아닌 현재 화면에 렌더된 결과 기준으로 정렬하도록 수정
             const currentRows = Array.from(resultsTable.querySelectorAll('tbody tr[data-key]'));
             const sorted = currentRows.sort((a, b) => {
+
                 let valA = a.dataset[field];
                 let valB = b.dataset[field];
-                // 숫자 정렬1
-                if (typeof valA === 'number' && typeof valB === 'number') {
+
+                // 숫자 정렬
+                valA = Number(valA);
+                valB = Number(valB);
+                if (!isNaN(valA) && !isNaN(valB)) {
                     return (valA - valB) * lastSort.dir;
                 }
+
                 // 날짜 정렬
                 if (field === 'date') {
                     const dateA = valA ? new Date(valA.replace(/\./g, '-')) : new Date(0);
@@ -793,7 +798,8 @@ function renderResults(results) {
         row.dataset.complexName = result.complexName || '';
         row.dataset.pyeongName = result.pyeongName || '';
         row.dataset.floor = result.floor || '';
-        row.dataset.price = result.price !== null ? result.price : '';
+        row.dataset.floorValue = Number(row.dataset.floor ? row.dataset.floor.replace('층', '') : '0');
+        row.dataset.price = result.price !== null ? Number(result.price) : '';
         row.dataset.date = result.date || '';
         row.dataset.noPrice = result.noPrice ? 'true' : 'false';
 
@@ -838,10 +844,11 @@ function renderResults(results) {
 
         // 평단가 계산 (price per pyeong)
         let pricePerPyeong = '';
+        let pricePer = 0;
         if (hasPrice && result.price && result.pyeongName) {
             const pyeong = parseFloat(result.pyeongName);
             if (pyeong && !isNaN(pyeong)) {
-                const pricePer = result.price / pyeong;
+                pricePer = result.price / pyeong;
                 if (pricePer < 10000) {
                     // 1억(10000만) 이하: 만원 단위, 콤마 추가
                     pricePerPyeong = `${Math.round(pricePer).toLocaleString()}만/평`;
@@ -852,6 +859,7 @@ function renderResults(results) {
                 }
             }
         }
+        row.dataset.pricePer = pricePer;
         row.dataset.pricePerPyeong = pricePerPyeong;
         const regionClass = result.region === '지역1' ? `region1-label` : `region2-label`;
         row.innerHTML = `
