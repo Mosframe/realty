@@ -1,3 +1,17 @@
+const lastSort = { col: 1, dir: 1 };
+// 컬럼 인덱스와 필드 매핑 (col1~col8)
+const colFieldMap = [
+    'rank', // col1:
+    'region', // col2
+    'complexName', // col3
+    'pyeongName', // col4
+    'floor', // col5
+    'price', // col6
+    'pricePerPyeong', // col7
+    'date' // col8
+];
+
+
 // 클립보드 복사 기능
 function copyTableToClipboard() {
     const table = document.getElementById('resultsTable');
@@ -45,6 +59,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyBtn = document.getElementById('copyClipboardBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', copyTableToClipboard);
+    }
+
+    // ====== col1~col8 토글버튼 정렬 기능 ======
+    const resultsTable = document.getElementById('resultsTable');
+
+    // renderResults에서 마지막 데이터 저장
+    const origRenderResults = window.renderResults;
+    window.renderResults = function (results) {
+        lastResults = results.slice(); // 복사본 저장
+        origRenderResults.call(this, results);
+    };
+
+    // 버튼 이벤트 등록
+    for (let i = 1; i <= colFieldMap.length; i++) {
+
+        const btn = document.querySelector(`#col${i} .sort-btn`);
+        if (!btn) continue;
+        btn.addEventListener('click', () => {
+
+            const field = colFieldMap[i - 1];
+            if (!field) return;
+
+            // 정렬 방향 토글
+            if (lastSort.col === i) {
+                lastSort.dir *= -1;
+            } else {
+                lastSort.col = i;
+                lastSort.dir = 1;
+            }
+
+            // lastResults 값이 아닌 현재 화면에 렌더된 결과 기준으로 정렬하도록 수정
+            const currentRows = Array.from(resultsTable.querySelectorAll('tbody tr[data-key]'));
+            const sorted = currentRows.sort((a, b) => {
+                let valA = a.dataset[field];
+                let valB = b.dataset[field];
+                // 숫자 정렬1
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return (valA - valB) * lastSort.dir;
+                }
+                // 날짜 정렬
+                if (field === 'date') {
+                    const dateA = valA ? new Date(valA.replace(/\./g, '-')) : new Date(0);
+                    const dateB = valB ? new Date(valB.replace(/\./g, '-')) : new Date(0);
+                    return (dateA - dateB) * lastSort.dir;
+                }
+                // 문자열 정렬
+                valA = valA || '';
+                valB = valB || '';
+                return valA.localeCompare(valB) * lastSort.dir;
+            });
+
+            // 정렬된 결과로 테이블 다시 렌더링
+            const fragment = document.createDocumentFragment();
+            sorted.forEach(row => {
+                fragment.appendChild(row);
+            });
+            resultsTable.querySelector('tbody').innerHTML = '';
+            resultsTable.querySelector('tbody').appendChild(fragment);
+
+        });
     }
 });
 // 엑셀 다운로드 기능 (SheetJS)
@@ -184,6 +258,7 @@ var searchState = 'idle'; // 'idle', 'searching', 'paused'
 
 // 조회중일 때 옵션 비활성화, 그 외엔 활성화
 function updateFilterDisabled() {
+
     const disabled = searchState === 'searching';
     // 시도, 시군구, 동, 평형, 날짜, 체크박스 모두 비활성화 (조회중)
     sidoSelect.disabled = disabled;
@@ -197,7 +272,10 @@ function updateFilterDisabled() {
     dateFromInput.disabled = disabled;
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
-    // 조회 버튼은 별도 로직에서 관리
+
+    // 정렬 초기화
+    lastSort.col = 1;
+    lastSort.dir = 1;
 }
 
 // updateSearchBtn에서 옵션 활성/비활성도 같이 처리
@@ -643,7 +721,7 @@ function resultKey(r) {
 // 이전 순위 기록 (순위 변동 감지용)
 const prevRanks = new Map();
 
-// 결과 테이블 렌더링 (FLIP 애니메이션)
+// 결과 테이블 렌더링
 function renderResults(results) {
     // 가격 있는 항목은 평단가 기준 정렬, 미조회 항목은 뒤쪽
     results.sort((a, b) => {
@@ -657,6 +735,12 @@ function renderResults(results) {
             return r.price / pyeong;
         };
         return getPerPyeong(b) - getPerPyeong(a);
+    });
+
+    // 각 row에 pricePerPyeong 필드 추가 (정렬용)
+    results.forEach(r => {
+        const pyeong = parseFloat(r.pyeongName);
+        r.pricePerPyeong = (r.price && pyeong && !isNaN(pyeong)) ? r.price / pyeong : null;
     });
 
     // 단지별 최고평단가만 필터링
@@ -708,12 +792,19 @@ function renderResults(results) {
         row.dataset.region = result.region || '';
         row.dataset.complexName = result.complexName || '';
         row.dataset.pyeongName = result.pyeongName || '';
+        row.dataset.floor = result.floor || '';
+        row.dataset.price = result.price !== null ? result.price : '';
+        row.dataset.date = result.date || '';
+        row.dataset.noPrice = result.noPrice ? 'true' : 'false';
+
 
         const hasPrice = result.price !== null;
         if (hasPrice) rank++;
 
         // 순위 기록
         if (hasPrice) currentRanks.set(key, rank);
+
+        row.dataset.rank = rank;
 
         row.classList.remove('rank-1', 'rank-2', 'rank-3');
         if (hasPrice && rank === 1) row.classList.add('rank-1');
@@ -761,6 +852,7 @@ function renderResults(results) {
                 }
             }
         }
+        row.dataset.pricePerPyeong = pricePerPyeong;
         const regionClass = result.region === '지역1' ? `region1-label` : `region2-label`;
         row.innerHTML = `
             <td class="rank-cell">${hasPrice ? rank : '-'}</td>

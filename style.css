@@ -1,3 +1,45 @@
+/* ====== 테이블 헤더 정렬 sort-btn ====== */
+.sort-btn {
+    background: none;
+    border: none;
+    color: lightblue;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    outline: none;
+    box-shadow: none;
+    position: relative;
+    min-width: 60px;
+}
+
+.sort-btn:hover,
+.sort-btn:focus {
+    color: white;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.08);
+}
+
+.sort-btn:active {
+    color: #3578c6;
+    background-color: darkslateblue;
+}
+
+.sort-btn.sorted-asc::after {
+    content: '▲';
+    font-size: 0.85em;
+    margin-left: 4px;
+    color: #3578c6;
+}
+
+.sort-btn.sorted-desc::after {
+    content: '▼';
+    font-size: 0.85em;
+    margin-left: 4px;
+    color: #3578c6;
+}
+
 /* 그래프 버튼 스타일 */
 .btn-graph {
     background: linear-gradient(90deg, #4a90e2 60%, #50e3c2 100%);
