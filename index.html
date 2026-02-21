@@ -69,11 +69,22 @@
                     <span class="pyeong-unit">평</span>
                 </div>
             </div>
+            <div class="form-group price-filter">
+                <label>가격 범위</label>
+                <div class="price-range">
+                    <input type="number" id="priceMin" class="form-control price-input" placeholder="최소" min="1"
+                        max="999999">
+                    <span class="price-separator">~</span>
+                    <input type="number" id="priceMax" class="form-control price-input" placeholder="최대" min="1"
+                        max="999999">
+                    <span class="price-unit">억원</span>
+                </div>
+            </div>
             <div class="form-group date-filter">
                 <label>거래일자 범위</label>
                 <div class="date-range">
                     <input type="date" id="dateFrom" class="form-control date-input">
-                    <span class="pyeong-separator">~</span>
+                    <span class="date-separator">~</span>
                     <input type="date" id="dateTo" class="form-control date-input">
                 </div>
             </div>

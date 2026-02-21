@@ -1,24 +1,26 @@
 const lastSort = { col: 1, dir: 1 };
-// 컬럼 인덱스와 필드 매핑 (col1~col8)
 const colFieldMap = [
-    'rank', // col1:
-    'region', // col2
-    'complexName', // col3
-    'pyeongName', // col4
-    'floorValue', // col5
-    'price', // col6
-    'pricePer', // col7
-    'date' // col8
+    'rank',
+    'region',
+    'complexName',
+    'pyeongName',
+    'floorValue',
+    'price',
+    'pricePer',
+    'date'
 ];
 
-
-// 클립보드 복사 기능
 function copyTableToClipboard() {
     const table = document.getElementById('resultsTable');
     if (!table) return;
-    // 검색 조건 추출
     const now = new Date();
-    const dateStr = now.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
     const sido = sidoSelect.options[sidoSelect.selectedIndex]?.text || '';
     const district = districtSelect.options[districtSelect.selectedIndex]?.text || '';
     const dong = dongSelect.options[dongSelect.selectedIndex]?.text || '';
@@ -27,6 +29,8 @@ function copyTableToClipboard() {
     const dong2 = dongSelect2.options[dongSelect2.selectedIndex]?.text || '';
     const pyeongMin = pyeongMinInput.value;
     const pyeongMax = pyeongMaxInput.value;
+    const priceMin = priceMinInput.value;
+    const priceMax = priceMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
@@ -35,14 +39,13 @@ function copyTableToClipboard() {
         `지역1: ${sido} ${district} ${dong}`.trim(),
         `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
+        `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
     ].filter(Boolean);
     let tsv = conds.join('\n') + '\n';
-    // 헤더
     const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.innerText.trim());
     tsv += headers.join('\t') + '\n';
-    // 데이터
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     for (const row of rows) {
         const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.replace(/\n/g, ' ').trim());
@@ -60,69 +63,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (copyBtn) {
         copyBtn.addEventListener('click', copyTableToClipboard);
     }
-
-    // ====== col1~col8 토글버튼 정렬 기능 ======
     const resultsTable = document.getElementById('resultsTable');
-
-    // renderResults에서 마지막 데이터 저장
     const origRenderResults = window.renderResults;
     window.renderResults = function (results) {
-        lastResults = results.slice(); // 복사본 저장
+        lastResults = results.slice();
         origRenderResults.call(this, results);
     };
-
-    // 버튼 이벤트 등록
     for (let i = 1; i <= colFieldMap.length; i++) {
-
         const btn = document.querySelector(`#col${i} .sort-btn`);
         if (!btn) continue;
         btn.addEventListener('click', () => {
-
             const field = colFieldMap[i - 1];
             if (!field) return;
-
-            // 정렬 방향 토글
             if (lastSort.col === i) {
                 lastSort.dir *= -1;
             } else {
                 lastSort.col = i;
                 lastSort.dir = 1;
             }
-
-            // lastResults 값이 아닌 현재 화면에 렌더된 결과 기준으로 정렬하도록 수정
             const currentRows = Array.from(resultsTable.querySelectorAll('tbody tr[data-key]'));
             const sorted = currentRows.sort((a, b) => {
-
                 let valA = a.dataset[field];
                 let valB = b.dataset[field];
-
-                // 숫자 정렬
                 const numA = Number(valA);
                 const numB = Number(valB);
                 if (!isNaN(numA) && !isNaN(numB)) {
                     return (numA - numB) * lastSort.dir;
                 }
-
-                // 날짜 정렬
                 if (field === 'date') {
                     const dateA = valA ? new Date(valA.replace(/\./g, '-')) : new Date(0);
                     const dateB = valB ? new Date(valB.replace(/\./g, '-')) : new Date(0);
                     return (dateA - dateB) * lastSort.dir;
                 }
-                // 문자열 정렬
                 valA = valA || '';
                 valB = valB || '';
                 return valA.localeCompare(valB) * lastSort.dir;
             });
-
-            // 정렬된 결과로 테이블 다시 렌더링
             const fragment = document.createDocumentFragment();
             sorted.forEach(row => {
                 fragment.appendChild(row);
             });
             resultsTable.querySelector('tbody').innerHTML = '';
             resultsTable.querySelector('tbody').appendChild(fragment);
-
         });
     }
 });
@@ -150,6 +132,8 @@ function exportTableToExcel() {
     const dong2 = dongSelect2.options[dongSelect2.selectedIndex]?.text || '';
     const pyeongMin = pyeongMinInput.value;
     const pyeongMax = pyeongMaxInput.value;
+    const priceMin = priceMinInput.value;
+    const priceMax = priceMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
@@ -160,6 +144,7 @@ function exportTableToExcel() {
         `지역1: ${sido} ${district} ${dong}`.trim(),
         `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
+        `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
     ].filter(Boolean);
@@ -274,6 +259,8 @@ function updateFilterDisabled() {
     dongSelect2.disabled = disabled;
     pyeongMinInput.disabled = disabled;
     pyeongMaxInput.disabled = disabled;
+    priceMinInput.disabled = disabled;
+    priceMaxInput.disabled = disabled;
     dateFromInput.disabled = disabled;
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
@@ -347,6 +334,8 @@ const error = document.getElementById('error');
 const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
 const pyeongMinInput = document.getElementById('pyeongMin');
 const pyeongMaxInput = document.getElementById('pyeongMax');
+const priceMinInput = document.getElementById('priceMin');
+const priceMaxInput = document.getElementById('priceMax');
 const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
@@ -668,6 +657,28 @@ async function getRealPrices(complexNo, areaNo, all) {
         return null;
     }
 }
+// 호가 조회
+async function getAskingPrices(complexNo) {
+    try {
+        await new Promise(r => setTimeout(r, 100));
+        const tradeType = 'A1'; // 매매
+        const areaNos = ''; // 전체 평형
+        const order = 'prc'; // 가격순
+        let page = 1;
+        const data = await fetchAPI(`${API_BASE_URL}/articles/complex/${complexNo}?realEstateType=JGC%3AJGB%3AABYG%3AAPT%3APRE&tradeType=${tradeType}&tag=%3A%3A%3A%3A%3A%3A%3A%3A&rentPriceMin=0&rentPriceMax=900000000&priceMin=0&priceMax=900000000&areaMin=0&areaMax=900000000&oldBuildYears&recentlyBuildYears&minHouseHoldCount&maxHouseHoldCount&showArticle=false&sameAddressGroup=true&minMaintenanceCost&maxMaintenanceCost&priceType=RETAIL&directions=&page=${page}&complexNo=${complexNo}&buildingNos=&areaNos=${areaNos}&type=list&order=${order}`);
+        let isMoreData = data.isMoreData;
+        while (isMoreData) {
+            page++;
+            const data2 = await fetchAPI(`${API_BASE_URL}/articles/complex/${complexNo}?realEstateType=JGC%3AJGB%3AABYG%3AAPT%3APRE&tradeType=${tradeType}&tag=%3A%3A%3A%3A%3A%3A%3A%3A&rentPriceMin=0&rentPriceMax=900000000&priceMin=0&priceMax=900000000&areaMin=0&areaMax=900000000&oldBuildYears&recentlyBuildYears&minHouseHoldCount&maxHouseHoldCount&showArticle=false&sameAddressGroup=true&minMaintenanceCost&maxMaintenanceCost&priceType=RETAIL&directions=&page=${page}&complexNo=${complexNo}&buildingNos=&areaNos=${areaNos}&type=list&order=${order}`);
+            data.articleList = data.articleList.concat(data2.articleList || []);
+            isMoreData = data2.isMoreData;
+        }
+        return data;
+    } catch (err) {
+        console.error('Failed to load asking prices:', err);
+        return null;
+    }
+}
 
 // Calculate current price (highest in date range)
 // Note: dealPrice from the API is in units of 만원 (10,000 won)
@@ -835,11 +846,6 @@ function renderResults(results) {
             //if (result.isHighest) {
             //    nameBadge = ' <span class="badge-new">최고가</span>';
             //}
-        }
-        // 만약 거래내역이 여러 개라면, 어제 0시 이후 거래가 있는지 추가로 판별
-        if (!dateBadge && result._complexNo && result._areaNo && result.price === null && !result.noPrice) {
-            // 거래내역이 있으나 범위 내 거래가 없는 경우
-            // getRealPrices에서 받은 데이터 활용 필요(추가 구현 가능)
         }
 
         // 평단가 계산 (price per pyeong)
@@ -1117,6 +1123,8 @@ async function searchRealEstate(resume = false) {
         let itemCount = resumeState.itemIndex;
         const pyeongMin = pyeongMinInput.value ? parseInt(pyeongMinInput.value) : null;
         const pyeongMax = pyeongMaxInput.value ? parseInt(pyeongMaxInput.value) : null;
+        const priceMin = priceMinInput.value ? parseInt(priceMinInput.value) : null;
+        const priceMax = priceMaxInput.value ? parseInt(priceMaxInput.value) : null;
         for (; itemCount < pendingItems.length; itemCount++) {
             if (searchAborted) break;
             const item = pendingItems[itemCount];
@@ -1153,6 +1161,10 @@ async function searchRealEstate(resume = false) {
                         hasDeal = true;
                     }
                 }
+                // 가격 필터링 (억원)
+                const priceValue = priceInfo ? priceInfo.price : null;
+                if (priceMin !== null && (priceValue === null || priceValue < priceMin * 100000000)) continue;
+                if (priceMax !== null && (priceValue === null || priceValue > priceMax * 100000000)) continue;
                 // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
                 results.push({
                     region: item.region,
@@ -1275,6 +1287,8 @@ let DEFAULTS = {
     dong: '',
     pyeongMin: '',
     pyeongMax: '',
+    priceMin: '',
+    priceMax: '',
     dateFrom: '',
     dateTo: '',
     topOnly: false
@@ -1293,8 +1307,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             baseDate = new Date();
         }
 
-        // 30일 전으로 설정
-        baseDate.setDate(baseDate.getDate() - 30);
+        // 7일 전으로 설정
+        baseDate.setDate(baseDate.getDate() - 7);
         baseDate.setHours(0, 0, 0, 0);
         // yyyy-MM-dd 포맷
         const yyyy = baseDate.getFullYear();
@@ -1326,6 +1340,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set pyeong defaults
     if (DEFAULTS.pyeongMin) pyeongMinInput.value = DEFAULTS.pyeongMin;
     if (DEFAULTS.pyeongMax) pyeongMaxInput.value = DEFAULTS.pyeongMax;
+    if (DEFAULTS.priceMin) priceMinInput.value = DEFAULTS.priceMin;
+    if (DEFAULTS.priceMax) priceMaxInput.value = DEFAULTS.priceMax;
     if (DEFAULTS.dateFrom) dateFromInput.value = DEFAULTS.dateFrom;
     if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
