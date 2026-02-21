@@ -1173,7 +1173,7 @@ async function searchRealEstate(resume = false) {
                 // 가격 필터링 (억원)
                 const priceValue = priceInfo ? priceInfo.price : null;
                 if (priceMin !== null && (priceValue === null || priceValue < priceMin * 10000)) continue;
-                if (priceMax !== null && (priceValue === null || priceValue > priceMax * 10000)) continue;
+                if (priceMax !== null && (priceValue === null || priceValue >= priceMax * 10000)) continue;
                 // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
                 results.push({
                     region: item.region,
