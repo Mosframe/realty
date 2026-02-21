@@ -209,7 +209,15 @@ h2 {
 .pyeong-range {
     display: flex;
     align-items: center;
+}
 
+.price-range {
+    display: flex;
+    align-items: center;
+}
+
+.price-unit {
+    width: 100%;
 }
 
 .date-range {
@@ -498,7 +506,8 @@ h2 {
     }
 
     .date-range,
-    .pyeong-range {
+    .pyeong-range,
+    .price-range {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -508,7 +517,8 @@ h2 {
     }
 
     .date-input,
-    .pyeong-input {
+    .pyeong-input,
+    .price-input {
         display: inline-block;
         width: 60px !important;
         min-width: 50px;
