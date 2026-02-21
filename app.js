@@ -101,6 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const fragment = document.createDocumentFragment();
             sorted.forEach(row => {
+
+                if (field !== 'rank') {
+
+                    row.querySelector('.rank-cell').innerText = fragment.childElementCount + 1;
+                }
+                else {
+
+                    row.querySelector('.rank-cell').innerText = row.dataset.rank;
+                }
                 fragment.appendChild(row);
             });
             resultsTable.querySelector('tbody').innerHTML = '';
