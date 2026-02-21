@@ -1142,8 +1142,8 @@ async function searchRealEstate(resume = false) {
         let itemCount = resumeState.itemIndex;
         const pyeongMin = pyeongMinInput.value ? parseInt(pyeongMinInput.value) : null;
         const pyeongMax = pyeongMaxInput.value ? parseInt(pyeongMaxInput.value) : null;
-        const priceMin = priceMinInput.value ? parseInt(priceMinInput.value) : null;
-        const priceMax = priceMaxInput.value ? parseInt(priceMaxInput.value) : null;
+        const priceMin = priceMinInput.value ? parseFloat(priceMinInput.value) : null;
+        const priceMax = priceMaxInput.value ? parseFloat(priceMaxInput.value) : null;
         const floorMin = floorMinInput.value ? parseInt(floorMinInput.value) : null;
         const floorMax = floorMaxInput.value ? parseInt(floorMaxInput.value) : null;
         for (; itemCount < pendingItems.length; itemCount++) {
