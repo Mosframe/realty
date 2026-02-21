@@ -31,6 +31,8 @@ function copyTableToClipboard() {
     const pyeongMax = pyeongMaxInput.value;
     const priceMin = priceMinInput.value;
     const priceMax = priceMaxInput.value;
+    const floorMin = floorMinInput.value;
+    const floorMax = floorMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
@@ -40,6 +42,7 @@ function copyTableToClipboard() {
         `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
+        `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
     ].filter(Boolean);
@@ -143,6 +146,8 @@ function exportTableToExcel() {
     const pyeongMax = pyeongMaxInput.value;
     const priceMin = priceMinInput.value;
     const priceMax = priceMaxInput.value;
+    const floorMin = floorMinInput.value;
+    const floorMax = floorMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
@@ -154,6 +159,7 @@ function exportTableToExcel() {
         `지역2: ${sido2} ${district2} ${dong2}`.trim(),
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
+        `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly
     ].filter(Boolean);
@@ -270,6 +276,8 @@ function updateFilterDisabled() {
     pyeongMaxInput.disabled = disabled;
     priceMinInput.disabled = disabled;
     priceMaxInput.disabled = disabled;
+    floorMinInput.disabled = disabled;
+    floorMaxInput.disabled = disabled;
     dateFromInput.disabled = disabled;
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
@@ -345,6 +353,8 @@ const pyeongMinInput = document.getElementById('pyeongMin');
 const pyeongMaxInput = document.getElementById('pyeongMax');
 const priceMinInput = document.getElementById('priceMin');
 const priceMaxInput = document.getElementById('priceMax');
+const floorMinInput = document.getElementById('floorMin');
+const floorMaxInput = document.getElementById('floorMax');
 const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
@@ -1134,6 +1144,8 @@ async function searchRealEstate(resume = false) {
         const pyeongMax = pyeongMaxInput.value ? parseInt(pyeongMaxInput.value) : null;
         const priceMin = priceMinInput.value ? parseInt(priceMinInput.value) : null;
         const priceMax = priceMaxInput.value ? parseInt(priceMaxInput.value) : null;
+        const floorMin = floorMinInput.value ? parseInt(floorMinInput.value) : null;
+        const floorMax = floorMaxInput.value ? parseInt(floorMaxInput.value) : null;
         for (; itemCount < pendingItems.length; itemCount++) {
             if (searchAborted) break;
             const item = pendingItems[itemCount];
@@ -1173,7 +1185,12 @@ async function searchRealEstate(resume = false) {
                 // 가격 필터링 (억원)
                 const priceValue = priceInfo ? priceInfo.price : null;
                 if (priceMin !== null && (priceValue === null || priceValue < priceMin * 10000)) continue;
-                if (priceMax !== null && (priceValue === null || priceValue >= priceMax * 10000)) continue;
+                if (priceMax !== null && (priceValue === null || priceValue > priceMax * 10000)) continue;
+                // 층수 필터링
+                const floorValue = priceInfo ? parseInt(priceInfo.floor) : null;
+                if (floorMin !== null && (floorValue === null || floorValue < floorMin)) continue;
+                if (floorMax !== null && (floorValue === null || floorValue > floorMax)) continue;
+
                 // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
                 results.push({
                     region: item.region,
@@ -1298,6 +1315,8 @@ let DEFAULTS = {
     pyeongMax: '',
     priceMin: '',
     priceMax: '',
+    floorMin: '',
+    floorMax: '',
     dateFrom: '',
     dateTo: '',
     topOnly: false
@@ -1351,6 +1370,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (DEFAULTS.pyeongMax) pyeongMaxInput.value = DEFAULTS.pyeongMax;
     if (DEFAULTS.priceMin) priceMinInput.value = DEFAULTS.priceMin;
     if (DEFAULTS.priceMax) priceMaxInput.value = DEFAULTS.priceMax;
+    if (DEFAULTS.floorMin) floorMinInput.value = DEFAULTS.floorMin;
+    if (DEFAULTS.floorMax) floorMaxInput.value = DEFAULTS.floorMax;
     if (DEFAULTS.dateFrom) dateFromInput.value = DEFAULTS.dateFrom;
     if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
@@ -1365,6 +1386,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     pyeongMinInput.addEventListener('input', onFilterChanged);
     pyeongMaxInput.addEventListener('input', onFilterChanged);
+    floorMinInput.addEventListener('input', onFilterChanged);
+    floorMaxInput.addEventListener('input', onFilterChanged);
     dateFromInput.addEventListener('input', onFilterChanged);
     dateToInput.addEventListener('input', onFilterChanged);
     topOnlyCheckbox.addEventListener('change', onFilterChanged);

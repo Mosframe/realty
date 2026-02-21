@@ -216,8 +216,13 @@ h2 {
     align-items: center;
 }
 
+.floor-range {
+    display: flex;
+    align-items: center;
+}
+
 .price-unit {
-    width: 100%;
+    width: 5em;
 }
 
 .date-range {
@@ -507,7 +512,8 @@ h2 {
 
     .date-range,
     .pyeong-range,
-    .price-range {
+    .price-range,
+    .floor-range {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -518,7 +524,8 @@ h2 {
 
     .date-input,
     .pyeong-input,
-    .price-input {
+    .price-input,
+    .floor-input {
         display: inline-block;
         width: 60px !important;
         min-width: 50px;
