@@ -1,3 +1,31 @@
+// iOS-style price type switch logic
+document.addEventListener('DOMContentLoaded', function () {
+    const priceTypeSwitch = document.getElementById('priceTypeSwitch');
+    if (priceTypeSwitch) {
+        priceTypeSwitch.addEventListener('change', function () {
+            // 실거래가: false, 호가: true
+            const isAsking = priceTypeSwitch.checked;
+            document.querySelectorAll('.switch-label').forEach(label => {
+                label.style.fontWeight = '';
+                label.style.color = '#333';
+                label.style.fontSize = '13px';
+            });
+            if (isAsking) {
+                document.querySelectorAll('.switch-label')[1].style.fontWeight = 'bold';
+                document.querySelectorAll('.switch-label')[1].style.color = '#2196f3';
+            } else {
+                document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
+                document.querySelectorAll('.switch-label')[0].style.color = '#2196f3';
+            }
+            // TODO: 연동된 데이터 필터링 로직에 적용
+        });
+        // 초기 상태: 실거래가 강조
+        document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
+        document.querySelectorAll('.switch-label')[0].style.color = '#2196f3';
+        document.querySelectorAll('.switch-label')[0].style.fontSize = '13px';
+        document.querySelectorAll('.switch-label')[1].style.fontSize = '13px';
+    }
+});
 const lastSort = { col: 1, dir: 1 };
 const colFieldMap = [
     'rank',
@@ -257,6 +285,8 @@ const dongSelect = document.getElementById('dong');
 const sidoSelect2 = document.getElementById('sido2');
 const districtSelect2 = document.getElementById('district2');
 const dongSelect2 = document.getElementById('dong2');
+const priceTypeSwitch = document.getElementById('priceTypeSwitch');
+
 const searchBtn = document.getElementById('searchBtn');
 
 var searchState = 'idle'; // 'idle', 'searching', 'paused'
@@ -677,21 +707,40 @@ async function getRealPrices(complexNo, areaNo, all) {
     }
 }
 // 호가 조회
-async function getAskingPrices(complexNo) {
+async function getAskingPrices(complexNo, areaNo) {
     try {
         await new Promise(r => setTimeout(r, 100));
         const tradeType = 'A1'; // 매매
-        const areaNos = ''; // 전체 평형
+        const areaNos = areaNo; // 전체 평형
         const order = 'prc'; // 가격순
         let page = 1;
         const data = await fetchAPI(`${API_BASE_URL}/articles/complex/${complexNo}?realEstateType=JGC%3AJGB%3AABYG%3AAPT%3APRE&tradeType=${tradeType}&tag=%3A%3A%3A%3A%3A%3A%3A%3A&rentPriceMin=0&rentPriceMax=900000000&priceMin=0&priceMax=900000000&areaMin=0&areaMax=900000000&oldBuildYears&recentlyBuildYears&minHouseHoldCount&maxHouseHoldCount&showArticle=false&sameAddressGroup=true&minMaintenanceCost&maxMaintenanceCost&priceType=RETAIL&directions=&page=${page}&complexNo=${complexNo}&buildingNos=&areaNos=${areaNos}&type=list&order=${order}`);
-        let isMoreData = data.isMoreData;
-        while (isMoreData) {
-            page++;
-            const data2 = await fetchAPI(`${API_BASE_URL}/articles/complex/${complexNo}?realEstateType=JGC%3AJGB%3AABYG%3AAPT%3APRE&tradeType=${tradeType}&tag=%3A%3A%3A%3A%3A%3A%3A%3A&rentPriceMin=0&rentPriceMax=900000000&priceMin=0&priceMax=900000000&areaMin=0&areaMax=900000000&oldBuildYears&recentlyBuildYears&minHouseHoldCount&maxHouseHoldCount&showArticle=false&sameAddressGroup=true&minMaintenanceCost&maxMaintenanceCost&priceType=RETAIL&directions=&page=${page}&complexNo=${complexNo}&buildingNos=&areaNos=${areaNos}&type=list&order=${order}`);
-            data.articleList = data.articleList.concat(data2.articleList || []);
-            isMoreData = data2.isMoreData;
+        if (data) {
+
+            let isMoreData = data.isMoreData;
+            while (isMoreData) {
+                page++;
+                const data2 = await fetchAPI(`${API_BASE_URL}/articles/complex/${complexNo}?realEstateType=JGC%3AJGB%3AABYG%3AAPT%3APRE&tradeType=${tradeType}&tag=%3A%3A%3A%3A%3A%3A%3A%3A&rentPriceMin=0&rentPriceMax=900000000&priceMin=0&priceMax=900000000&areaMin=0&areaMax=900000000&oldBuildYears&recentlyBuildYears&minHouseHoldCount&maxHouseHoldCount&showArticle=false&sameAddressGroup=true&minMaintenanceCost&maxMaintenanceCost&priceType=RETAIL&directions=&page=${page}&complexNo=${complexNo}&buildingNos=&areaNos=${areaNos}&type=list&order=${order}`);
+                data.articleList = data.articleList.concat(data2.articleList || []);
+                isMoreData = data2.isMoreData;
+            }
+
+            // 세부정보 얻기
+            if (data.articleList && data.articleList.length > 0) {
+
+                for (const article of data.articleList) {
+
+                    const data3 = await fetchAPI(`${API_BASE_URL}/articles/${article.articleNo}`);
+                    if (data3 && data3.articleDetail) {
+
+                        article.detail = data3.articleDetail;
+                    }
+                }
+            }
         }
+
+
+
         return data;
     } catch (err) {
         console.error('Failed to load asking prices:', err);
@@ -702,8 +751,9 @@ async function getAskingPrices(complexNo) {
 // Calculate current price (highest in date range)
 // Note: dealPrice from the API is in units of 만원 (10,000 won)
 // For example: dealPrice: 160000 means 160000만원 = 16억원
-function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
-    if (!realPriceData || !realPriceData.realPriceOnMonthList) {
+function calculateCurrentRealPrice(priceData, dateFrom, dateTo) {
+
+    if (!priceData || !priceData.realPriceOnMonthList) {
         return null;
     }
 
@@ -712,7 +762,7 @@ function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
     let allTimeHighest = 0; // 전체 기간 최고가 (최고가 판별용)
 
     // 1차: 전체 기간 최고가 계산
-    realPriceData.realPriceOnMonthList.forEach(monthData => {
+    priceData.realPriceOnMonthList.forEach(monthData => {
         if (monthData.realPriceList) {
             monthData.realPriceList.forEach(price => {
                 if (price.dealPrice > allTimeHighest) {
@@ -723,7 +773,7 @@ function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
     });
 
     // 2차: 날짜 범위 내 최고가 계산
-    realPriceData.realPriceOnMonthList.forEach(monthData => {
+    priceData.realPriceOnMonthList.forEach(monthData => {
         if (monthData.realPriceList) {
             monthData.realPriceList.forEach(price => {
                 const tradeDate = new Date(price.formattedTradeYearMonth.replace(/\./g, '-'));
@@ -737,7 +787,8 @@ function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
                             price: dealPrice,
                             floor: price.floor,
                             date: price.formattedTradeYearMonth,
-                            isHighest: dealPrice >= allTimeHighest // 전체 기간 대비 최고가 여부
+                            isHighest: dealPrice >= allTimeHighest, // 전체 기간 대비 최고가 여부
+                            isLowest: false
                         };
                     }
                 }
@@ -746,6 +797,80 @@ function calculateCurrentPrice(realPriceData, dateFrom, dateTo) {
     });
 
     return highestPriceInfo;
+}
+function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax) {
+
+    if (!askingPriceData || !askingPriceData.articleList) {
+        return null;
+    }
+
+    // 입주가능한 날짜가 6개월 이후이면 패스
+    const limitMonth = 6;
+    const now = new Date();
+    const maxDate = new Date(now.getFullYear(), now.getMonth() + limitMonth, now.getDate());
+
+    let minPrice = Infinity;
+    const info = { price: null, floor: null, date: null, isHighest: false, isLowest: false };
+    for (const article of askingPriceData.articleList) {
+
+        if (article.areaName !== areaName) continue;
+
+        // 즉시입주가 아니면 패스
+        if (!article.detail || article.detail.moveInPossibleYmd) {
+
+            const d = article.detail.moveInPossibleYmd;
+            if (!d) continue;
+            const moveDate = new Date(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`);
+            if (moveDate > maxDate) continue;
+        }
+
+        let floor = 0;
+        const floorInfos = article.floorInfo.split('/');
+        if (floorInfos.length == 2) {
+
+            const topFloor = parseInt(floorInfos[1]) || 0;
+
+            if (floorInfos[0] === '저') floor = 1;
+            else if (floorInfos[0] === '중') floor = Math.max(2, Math.floor(topFloor / 2));
+            else if (floorInfos[0] === '고') floor = topFloor;
+            else floor = parseInt(floorInfos[0]) || 0;
+        }
+
+        if (floorMin && floor < floorMin) continue;
+        if (floorMax && floor > floorMax) continue;
+
+        // 문자를 숫자로 변환(10억 5,000)
+        const priceParts = article.dealOrWarrantPrc.split(' ');
+        let price = 0;
+        priceParts.forEach(part => {
+
+            if (part.endsWith('억')) {
+
+                price += parseFloat(part.replace('억', '').replace(/,/g, '')) * 10000;
+
+            } else if (part.endsWith('만')) {
+
+                price += parseFloat(part.replace('만', '').replace(/,/g, ''));
+            }
+            else {
+
+                price += parseFloat(part.replace(/,/g, ''));
+            }
+        });
+
+        // 최저가 판별
+        if (price < minPrice) {
+
+            minPrice = price;
+
+            info.price = price;
+            info.floor = floor;
+            info.date = `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`;
+            info.isHighest = false;
+            info.isLowest = true;
+        }
+    }
+    return info;
 }
 
 // 결과 고유 키 생성
@@ -827,6 +952,7 @@ function renderResults(results) {
         row.dataset.region = result.region || '';
         row.dataset.complexName = result.complexName || '';
         row.dataset.pyeongName = result.pyeongName || '';
+        row.dataset.areaName = result.areaName || '';
         row.dataset.floor = result.floor || '';
         row.dataset.floorValue = Number(row.dataset.floor ? row.dataset.floor.replace('층', '') : '0');
         row.dataset.price = result.price !== null ? Number(result.price) : '';
@@ -955,6 +1081,7 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
     const areaNo = row.dataset.areaNo;
     const complexName = row.dataset.complexName;
     const pyeongName = row.dataset.pyeongName;
+    const areaName = row.dataset.areaName;
 
     window._lastDetailComplexNo = complexNo;
 
@@ -971,15 +1098,15 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
 
     // 단지 기본 정보 표시
     if (complexInfo) {
-        const info = complexInfo;
+        const info = complexInfo.complex;
         const area = info.areaList?.find(a => String(a.pyeongNo) === String(areaNo));
         const items = [];
-        if (info.address) items.push({ label: '주소', value: info.address });
+        if (info.cortarAddress) items.push({ label: '주소', value: info.cortarAddress });
         if (info.totalHouseholdCount) items.push({ label: '세대수', value: info.totalHouseholdCount.toLocaleString() + '세대' });
-        if (info.totalBuildingCount) items.push({ label: '동수', value: info.totalBuildingCount + '개동' });
-        if (info.approvalDate) items.push({ label: '준공일', value: info.approvalDate });
-        if (area?.supplySpace) items.push({ label: '공급면적', value: area.supplySpace + '㎡' });
-        if (area?.exclusiveSpace) items.push({ label: '전용면적', value: area.exclusiveSpace + '㎡' });
+        if (info.totalDongCount) items.push({ label: '동수', value: info.totalDongCount + '개동' });
+        if (info.useApproveYmd) items.push({ label: '준공일', value: info.useApproveYmd });
+        if (area?.supplyArea) items.push({ label: '공급면적', value: area.supplyArea + '㎡' });
+        if (area?.exclusiveArea) items.push({ label: '전용면적', value: area.exclusiveArea + '㎡' });
         if (info.parkingCountByHousehold) items.push({ label: '주차', value: info.parkingCountByHousehold + '대/세대' });
         if (info.floorAreaRatio) items.push({ label: '용적률', value: info.floorAreaRatio + '%' });
 
@@ -1157,6 +1284,7 @@ async function searchRealEstate(resume = false) {
                     region: item.region,
                     complexName: item.complexName,
                     pyeongName: '-',
+                    areaName: null,
                     floor: null,
                     price: null,
                     date: null,
@@ -1168,18 +1296,35 @@ async function searchRealEstate(resume = false) {
                 continue;
             }
             for (const area of complexInfo.areaList) {
+
                 const pyeong = parseInt(area.pyeongName2) || parseInt(area.exclusivePyeong) || 0;
                 if (pyeongMin !== null && pyeong < pyeongMin) continue;
                 if (pyeongMax !== null && pyeong > pyeongMax) continue;
+
+                const areaName = area.areaName || area.pyeongName; // 주의 : 현재는 네이버부동산에서 areaName 값을 pyeongName란 이름으로 잘못된 이름으로 저장되고 있지만 나중에 수정될 수 있어서 areaName이 있으면 우선 사용
+
                 // 가격 조회
-                const priceData = await getRealPrices(item.complexNo, area.pyeongNo);
+
+                const isAskingPrice = priceTypeSwitch.checked;
+                const priceData = isAskingPrice ? await getAskingPrices(item.complexNo, area.pyeongNo) : await getRealPrices(item.complexNo, area.pyeongNo);
                 let priceInfo = null;
                 let hasDeal = false;
                 if (priceData) {
-                    priceInfo = calculateCurrentPrice(priceData, dateFromInput.value ? new Date(dateFromInput.value) : null, dateToInput.value ? new Date(dateToInput.value) : null);
-                    // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
-                    if (priceData.realPriceOnMonthList && priceData.realPriceOnMonthList.some(m => m.realPriceList && m.realPriceList.length > 0)) {
-                        hasDeal = true;
+                    if (isAskingPrice) {
+
+                        priceInfo = calculateCurrentAskingPrice(priceData, areaName, floorMin, floorMax);
+                        // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
+                        if (priceData.articleList && priceData.articleList.length > 0) {
+                            hasDeal = true;
+                        }
+                    }
+                    else {
+
+                        priceInfo = calculateCurrentRealPrice(priceData, dateFromInput.value ? new Date(dateFromInput.value) : null, dateToInput.value ? new Date(dateToInput.value) : null);
+                        // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
+                        if (priceData.realPriceOnMonthList && priceData.realPriceOnMonthList.some(m => m.realPriceList && m.realPriceList.length > 0)) {
+                            hasDeal = true;
+                        }
                     }
                 }
                 // 가격 필터링 (억원)
@@ -1196,10 +1341,12 @@ async function searchRealEstate(resume = false) {
                     region: item.region,
                     complexName: item.complexName,
                     pyeongName: area.pyeongName2 || area.pyeongName,
+                    areaName: areaName,
                     floor: priceInfo ? priceInfo.floor : null,
                     price: priceInfo ? priceInfo.price : null,
                     date: priceInfo ? priceInfo.date : null,
                     isHighest: priceInfo ? priceInfo.isHighest : false,
+                    isLowest: priceInfo ? priceInfo.isLowest : false,
                     _complexNo: item.complexNo,
                     _areaNo: area.pyeongNo,
                     noPrice: hasDeal ? !priceInfo : true
