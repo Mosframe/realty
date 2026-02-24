@@ -64,6 +64,7 @@ function copyTableToClipboard() {
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
+    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고 평단가만' : '';
     const conds = [
         `조회일자: ${dateStr}`,
         `지역1: ${sido} ${district} ${dong}`.trim(),
@@ -72,14 +73,16 @@ function copyTableToClipboard() {
         `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
-        topOnly
+        topOnly,
+        topOnly2
     ].filter(Boolean);
     let tsv = conds.join('\n') + '\n';
     const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.innerText.trim());
     tsv += headers.join('\t') + '\n';
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const rows = Array.from(table.querySelectorAll('tbody tr[data-key]'));
     for (const row of rows) {
-        const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.replace(/\n/g, ' ').trim());
+
+        const cells = Object.values(colFieldMap).map(field => row.dataset[field]);
         if (cells.length === headers.length) {
             tsv += cells.join('\t') + '\n';
         }
@@ -179,6 +182,7 @@ function exportTableToExcel() {
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
+    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고 평단가만' : '';
     // 조건 행들 추가 (아래에서 위로 삽입)
     let insertAt = 0;
     const conds = [
@@ -189,7 +193,8 @@ function exportTableToExcel() {
         `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
         `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
-        topOnly
+        topOnly,
+        topOnly2
     ].filter(Boolean);
     for (let i = conds.length - 1; i >= 0; i--) {
         const row = clone.insertRow(insertAt);
@@ -311,6 +316,7 @@ function updateFilterDisabled() {
     dateFromInput.disabled = disabled;
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
+    topOnly2Checkbox.disabled = disabled;
 
     // 정렬 초기화
     lastSort.col = 1;
@@ -388,6 +394,7 @@ const floorMaxInput = document.getElementById('floorMax');
 const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
+const topOnly2Checkbox = document.getElementById('topOnly2Checkbox');
 const naverLandBtn = document.getElementById('naverLandBtn');
 if (naverLandBtn) {
     naverLandBtn.addEventListener('click', () => {
@@ -751,14 +758,14 @@ async function getAskingPrices(complexNo, areaNo) {
 // Calculate current price (highest in date range)
 // Note: dealPrice from the API is in units of 만원 (10,000 won)
 // For example: dealPrice: 160000 means 160000만원 = 16억원
-function calculateCurrentRealPrice(priceData, dateFrom, dateTo) {
+function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) {
 
     if (!priceData || !priceData.realPriceOnMonthList) {
         return null;
     }
 
+    let result = [];
     let highestPrice = null;
-    let highestPriceInfo = null;
     let allTimeHighest = 0; // 전체 기간 최고가 (최고가 판별용)
 
     // 1차: 전체 기간 최고가 계산
@@ -781,24 +788,37 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo) {
                 if ((!dateFrom || tradeDate >= dateFrom) && (!dateTo || tradeDate <= dateTo)) {
                     const dealPrice = price.dealPrice;
 
-                    if (!highestPrice || dealPrice > highestPrice) {
-                        highestPrice = dealPrice;
-                        highestPriceInfo = {
+                    if (isHightestOnly) {
+
+                        if (!highestPrice || dealPrice > highestPrice) {
+                            highestPrice = dealPrice;
+                            result = [{
+                                price: dealPrice,
+                                floor: price.floor,
+                                date: price.formattedTradeYearMonth,
+                                isHighest: dealPrice >= allTimeHighest, // 전체 기간 대비 최고가 여부
+                                isLowest: false
+                            }];
+                        }
+                    }
+                    else {
+
+                        result.push({
                             price: dealPrice,
                             floor: price.floor,
                             date: price.formattedTradeYearMonth,
                             isHighest: dealPrice >= allTimeHighest, // 전체 기간 대비 최고가 여부
                             isLowest: false
-                        };
+                        });
                     }
                 }
             });
         }
     });
 
-    return highestPriceInfo;
+    return result;
 }
-function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax) {
+function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax, isHightestOnly) {
 
     if (!askingPriceData || !askingPriceData.articleList) {
         return null;
@@ -809,8 +829,8 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
     const now = new Date();
     const maxDate = new Date(now.getFullYear(), now.getMonth() + limitMonth, now.getDate());
 
+    const result = [];
     let minPrice = Infinity;
-    const info = { price: null, floor: null, date: null, isHighest: false, isLowest: false };
     for (const article of askingPriceData.articleList) {
 
         if (article.areaName !== areaName) continue;
@@ -859,18 +879,33 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
         });
 
         // 최저가 판별
-        if (price < minPrice) {
+        if (isHightestOnly) {
 
-            minPrice = price;
+            if (price < minPrice) {
 
-            info.price = price;
-            info.floor = floor;
-            info.date = `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`;
-            info.isHighest = false;
-            info.isLowest = true;
+                minPrice = price;
+
+                result[{
+                    price: price,
+                    floor: floor,
+                    date: `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`,
+                    isHighest: false,
+                    isLowest: true
+                }];
+            }
+        }
+        else {
+
+            result.push({
+                price: price,
+                floor: floor,
+                date: `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`,
+                isHighest: false,
+                isLowest: true
+            });
         }
     }
-    return info;
+    return result;
 }
 
 // 결과 고유 키 생성
@@ -1307,12 +1342,12 @@ async function searchRealEstate(resume = false) {
 
                 const isAskingPrice = priceTypeSwitch.checked;
                 const priceData = isAskingPrice ? await getAskingPrices(item.complexNo, area.pyeongNo) : await getRealPrices(item.complexNo, area.pyeongNo);
-                let priceInfo = null;
+                let priceInfos = null;
                 let hasDeal = false;
                 if (priceData) {
                     if (isAskingPrice) {
 
-                        priceInfo = calculateCurrentAskingPrice(priceData, areaName, floorMin, floorMax);
+                        priceInfos = calculateCurrentAskingPrice(priceData, areaName, floorMin, floorMax, topOnly2Checkbox.checked);
                         // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
                         if (priceData.articleList && priceData.articleList.length > 0) {
                             hasDeal = true;
@@ -1320,38 +1355,46 @@ async function searchRealEstate(resume = false) {
                     }
                     else {
 
-                        priceInfo = calculateCurrentRealPrice(priceData, dateFromInput.value ? new Date(dateFromInput.value) : null, dateToInput.value ? new Date(dateToInput.value) : null);
+                        const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
+                        const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
+                        priceInfos = calculateCurrentRealPrice(priceData, dateFrom, dateTo, topOnly2Checkbox.checked);
                         // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
                         if (priceData.realPriceOnMonthList && priceData.realPriceOnMonthList.some(m => m.realPriceList && m.realPriceList.length > 0)) {
                             hasDeal = true;
                         }
                     }
                 }
-                // 가격 필터링 (억원)
-                const priceValue = priceInfo ? priceInfo.price : null;
-                if (priceMin !== null && (priceValue === null || priceValue < priceMin * 10000)) continue;
-                if (priceMax !== null && (priceValue === null || priceValue > priceMax * 10000)) continue;
-                // 층수 필터링
-                const floorValue = priceInfo ? parseInt(priceInfo.floor) : null;
-                if (floorMin !== null && (floorValue === null || floorValue < floorMin)) continue;
-                if (floorMax !== null && (floorValue === null || floorValue > floorMax)) continue;
 
-                // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
-                results.push({
-                    region: item.region,
-                    complexName: item.complexName,
-                    pyeongName: area.pyeongName2 || area.pyeongName,
-                    areaName: areaName,
-                    floor: priceInfo ? priceInfo.floor : null,
-                    price: priceInfo ? priceInfo.price : null,
-                    date: priceInfo ? priceInfo.date : null,
-                    isHighest: priceInfo ? priceInfo.isHighest : false,
-                    isLowest: priceInfo ? priceInfo.isLowest : false,
-                    _complexNo: item.complexNo,
-                    _areaNo: area.pyeongNo,
-                    noPrice: hasDeal ? !priceInfo : true
-                });
-                renderResults(results);
+                for (let i = 0; i < priceInfos.length; i++) {
+
+                    const priceInfo = priceInfos[i];
+
+                    // 가격 필터링 (억원)
+                    const priceValue = priceInfo ? priceInfo.price : null;
+                    if (priceMin !== null && (priceValue === null || priceValue < priceMin * 10000)) continue;
+                    if (priceMax !== null && (priceValue === null || priceValue > priceMax * 10000)) continue;
+                    // 층수 필터링
+                    const floorValue = priceInfo ? parseInt(priceInfo.floor) : null;
+                    if (floorMin !== null && (floorValue === null || floorValue < floorMin)) continue;
+                    if (floorMax !== null && (floorValue === null || floorValue > floorMax)) continue;
+
+                    // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
+                    results.push({
+                        region: item.region,
+                        complexName: item.complexName,
+                        pyeongName: area.pyeongName2 || area.pyeongName,
+                        areaName: areaName,
+                        floor: priceInfo ? priceInfo.floor : null,
+                        price: priceInfo ? priceInfo.price : null,
+                        date: priceInfo ? priceInfo.date : null,
+                        isHighest: priceInfo ? priceInfo.isHighest : false,
+                        isLowest: priceInfo ? priceInfo.isLowest : false,
+                        _complexNo: item.complexNo,
+                        _areaNo: area.pyeongNo,
+                        noPrice: hasDeal ? !priceInfo : true
+                    });
+                    renderResults(results);
+                }
             }
             // 진행상태 저장
             resumeState.itemIndex = itemCount + 1;
@@ -1522,6 +1565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (DEFAULTS.dateFrom) dateFromInput.value = DEFAULTS.dateFrom;
     if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
+    topOnly2Checkbox.checked = true;
 
     // Initialize search button state
     updateSearchBtn();
@@ -1538,12 +1582,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     dateFromInput.addEventListener('input', onFilterChanged);
     dateToInput.addEventListener('input', onFilterChanged);
     topOnlyCheckbox.addEventListener('change', onFilterChanged);
+    topOnly2Checkbox.addEventListener('change', onFilterChanged);
 
-    // 최초 자동 검색은 모든 지역 정보가 준비된 후에만 시도
-    if (getSelectedValue(sidoSelect) && getSelectedValue(districtSelect) && getSelectedValue(dongSelect)) {
-        searchBtn.disabled = false;
-        searchBtn.click();
-    }
 });
 
 
