@@ -15,13 +15,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelectorAll('.switch-label')[1].style.color = '#2196f3';
             } else {
                 document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
-                document.querySelectorAll('.switch-label')[0].style.color = '#2196f3';
+                document.querySelectorAll('.switch-label')[0].style.color = 'green';
             }
             // TODO: 연동된 데이터 필터링 로직에 적용
+            if (isAsking) {
+
+                document.querySelector('#title').innerHTML = '아파트 호가 조회';
+                document.querySelector('#dateFrom').disabled = true;
+                document.querySelector('#newBadgeDateInput').disabled = true;
+                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저 평단가만';
+                document.querySelector('#topOnly2Label').innerHTML = '평형별 최저 평단가만';
+                document.querySelector('.results-title').innerHTML = '매물 목록';
+            }
+            else {
+                document.querySelector('#title').innerHTML = '아파트 실거래가 조회';
+                document.querySelector('#dateFrom').disabled = false;
+                document.querySelector('#newBadgeDateInput').disabled = false;
+                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최고 평단가만';
+                document.querySelector('#topOnly2Label').innerHTML = '평형별 최고 평단가만';
+                document.querySelector('.results-title').innerHTML = '실거래가 목록';
+            }
+
         });
         // 초기 상태: 실거래가 강조
         document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
-        document.querySelectorAll('.switch-label')[0].style.color = '#2196f3';
+        document.querySelectorAll('.switch-label')[0].style.color = 'green';
         document.querySelectorAll('.switch-label')[0].style.fontSize = '13px';
         document.querySelectorAll('.switch-label')[1].style.fontSize = '13px';
     }
@@ -213,7 +231,7 @@ function exportTableToExcel() {
         { wch: 18 },  // 아파트명
         { wch: 8 },   // 평형
         { wch: 6 },   // 층
-        { wch: 14 },  // 현재시세
+        { wch: 14 },  // 가격
         { wch: 12 },  // 평단가
         { wch: 14 }   // 거래일자
     ];
@@ -317,6 +335,7 @@ function updateFilterDisabled() {
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
     topOnly2Checkbox.disabled = disabled;
+    priceTypeSwitch.disabled = disabled;
 
     // 정렬 초기화
     lastSort.col = 1;
@@ -818,7 +837,7 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
 
     return result;
 }
-function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax, isHightestOnly) {
+function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax, isLowestOnly) {
 
     if (!askingPriceData || !askingPriceData.articleList) {
         return null;
@@ -830,7 +849,7 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
     const maxDate = new Date(now.getFullYear(), now.getMonth() + limitMonth, now.getDate());
 
     const result = [];
-    let minPrice = Infinity;
+    let minPrice = 100000000000; // 1000억 (최저가 판별용)
     for (const article of askingPriceData.articleList) {
 
         if (article.areaName !== areaName) continue;
@@ -879,19 +898,20 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
         });
 
         // 최저가 판별
-        if (isHightestOnly) {
+        if (isLowestOnly) {
 
             if (price < minPrice) {
 
                 minPrice = price;
 
-                result[{
+                result.length = 0;
+                result.push({
                     price: price,
                     floor: floor,
                     date: `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`,
                     isHighest: false,
                     isLowest: true
-                }];
+                });
             }
         }
         else {
@@ -1120,7 +1140,7 @@ document.getElementById('resultsTable').querySelector('tbody').addEventListener(
 
     window._lastDetailComplexNo = complexNo;
 
-    detailTitle.textContent = `${complexName} ${pyeongName}평`;
+    detailTitle.textContent = `${complexName} ${pyeongName}평 세부정보`;
     detailInfo.innerHTML = '<div class="detail-loading">정보를 불러오는 중...</div>';
     detailTradeList.innerHTML = '<tr><td colspan="4" class="detail-loading">거래 내역을 불러오는 중...</td></tr>';
     detailPanelOverlay.style.display = 'flex';

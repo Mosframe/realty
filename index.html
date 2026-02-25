@@ -12,7 +12,7 @@
     <div class="container">
         <div class="header-row">
             <div id="appVersion" class="app-version"></div>
-            <h1>아파트 실거래가 조회</h1>
+            <h1 id="title">아파트 실거래가 조회</h1>
         </div>
 
         <div class="controls filter-row1">
@@ -54,6 +54,16 @@
                     <select id="dong2" class="form-control" disabled>
                         <option value="">동 선택</option>
                     </select>
+                </div>
+            </div>
+            <div class="form-group priceType">
+                <div class="ios-switch-group">
+                    <span class="switch-label">실거래가</span>
+                    <label class="ios-switch">
+                        <input type="checkbox" id="priceTypeSwitch">
+                        <span class="ios-slider"></span>
+                    </label>
+                    <span class="switch-label">호가</span>
                 </div>
             </div>
         </div>
@@ -108,24 +118,14 @@
             <div class="form-group top-only-filter">
                 <label class="checkbox-label">
                     <input type="checkbox" id="topOnlyCheckbox">
-                    단지별 최고 평단가만
+                    <span id="topOnlyLabel">단지별 최고 평단가만</span>
                 </label>
             </div>
             <div class="form-group top-only-filter">
                 <label class="checkbox-label">
                     <input type="checkbox" id="topOnly2Checkbox">
-                    평형별 최고 평단가만
+                    <span id="topOnly2Label">평형별 최고 평단가만</span>
                 </label>
-            </div>
-            <div class="form-group priceType">
-                <div class="ios-switch-group">
-                    <span class="switch-label">실거래가</span>
-                    <label class="ios-switch">
-                        <input type="checkbox" id="priceTypeSwitch">
-                        <span class="ios-slider"></span>
-                    </label>
-                    <span class="switch-label">호가</span>
-                </div>
             </div>
             <div class="filter-btns">
                 <button id="searchBtn" class="btn btn-primary" disabled>조회</button>
@@ -157,7 +157,7 @@
                         <th id="col3"><button class="sort-btn" data-col="3">아파트명</button></th>
                         <th id="col4"><button class="sort-btn" data-col="4">평형</button></th>
                         <th id="col5"><button class="sort-btn" data-col="5">층</button></th>
-                        <th id="col6"><button class="sort-btn" data-col="6">현재시세</button></th>
+                        <th id="col6"><button class="sort-btn" data-col="6">가격</button></th>
                         <th id="col7"><button class="sort-btn" data-col="7">평단가</button></th>
                         <th id="col8"><button class="sort-btn" data-col="8">거래일자</button></th>
                     </tr>
