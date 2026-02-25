@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저 평단가만';
                 document.querySelector('#topOnly2Label').innerHTML = '평형별 최저 평단가만';
                 document.querySelector('.results-title').innerHTML = '매물 목록';
+                document.querySelector('#col8').innerHTML = '등록일자';
             }
             else {
                 document.querySelector('#title').innerHTML = '아파트 실거래가 조회';
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector('#topOnlyLabel').innerHTML = '단지별 최고 평단가만';
                 document.querySelector('#topOnly2Label').innerHTML = '평형별 최고 평단가만';
                 document.querySelector('.results-title').innerHTML = '실거래가 목록';
+                document.querySelector('#col8').innerHTML = '거래일자';
             }
 
         });
