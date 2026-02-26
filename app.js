@@ -20,12 +20,12 @@ document.addEventListener('DOMContentLoaded', function () {
             // TODO: 연동된 데이터 필터링 로직에 적용
             if (isAsking) {
 
-                document.querySelector('#title').innerHTML = '아파트 호가 조회';
+                document.querySelector('#title').innerHTML = '아파트 최저가 매물 조회';
                 document.querySelector('#dateFrom').disabled = true;
                 document.querySelector('#newBadgeDateInput').disabled = true;
                 document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저 평단가만';
                 document.querySelector('#topOnly2Label').innerHTML = '평형별 최저 평단가만';
-                document.querySelector('.results-title').innerHTML = '매물 목록';
+                document.querySelector('.results-title').innerHTML = '최저가 매물 목록';
                 document.querySelector('#col8 button').innerHTML = '등록일자';
             }
             else {
@@ -58,7 +58,7 @@ const colFieldMap = [
     'date'
 ];
 
-function copyTableToClipboard() {
+function copyToClipboardForGoogleSheet() {
     const table = document.getElementById('resultsTable');
     if (!table) return;
     const now = new Date();
@@ -71,10 +71,11 @@ function copyTableToClipboard() {
     });
     const sido = sidoSelect.options[sidoSelect.selectedIndex]?.text || '';
     const district = districtSelect.options[districtSelect.selectedIndex]?.text || '';
-    const dong = dongSelect.options[dongSelect.selectedIndex]?.text || '';
+    const dong = dongSelect.selectedIndex > 0 ? dongSelect.options[dongSelect.selectedIndex]?.text || '' : '';
     const sido2 = sidoSelect2.options[sidoSelect2.selectedIndex]?.text || '';
     const district2 = districtSelect2.options[districtSelect2.selectedIndex]?.text || '';
-    const dong2 = dongSelect2.options[dongSelect2.selectedIndex]?.text || '';
+    const dong2 = dongSelect2.selectedIndex > 0 ? dongSelect2.options[dongSelect2.selectedIndex]?.text || '' : '';
+    const priceType = priceTypeSwitch.checked ? '최저가 매물' : '실거래가';
     const pyeongMin = pyeongMinInput.value;
     const pyeongMax = pyeongMaxInput.value;
     const priceMin = priceMinInput.value;
@@ -85,37 +86,75 @@ function copyTableToClipboard() {
     const dateTo = dateToInput.value;
     const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
     const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고 평단가만' : '';
+
+    // Section: 검색 조건 정보
     const conds = [
-        `조회일자: ${dateStr}`,
-        `지역1: ${sido} ${district} ${dong}`.trim(),
-        `지역2: ${sido2} ${district2} ${dong2}`.trim(),
-        `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
-        `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
-        `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
-        `거래일자: ${dateFrom || '-'} ~ ${dateTo || '-'}`,
+        `▶ ${priceType} 조회 결과`,
+        `조회일자\t${dateStr}`,
+        `지역1\t${sido} ${district} ${dong}`.trim(),
+        districtSelect2.selectedIndex > 0 ? `지역2\t${sido2} ${district2} ${dong2}`.trim() : '',
+        `평형\t${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
+        `가격\t${priceMin || '-'} ~ ${priceMax || '-'}억원`,
+        `층\t${floorMin || '-'} ~ ${floorMax || '-'}`,
+        priceTypeSwitch.checked ? '' : `거래일자\t${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly,
-        topOnly2
+        topOnly2,
+        `앱 다운로드\t=HYPERLINK("https://mosframe.github.io/realty/dist/realty.zip", "다운로드")\t아이디: 동탄\t비밀번호: 윤대장`
+
     ].filter(Boolean);
-    let tsv = conds.join('\n') + '\n';
-    const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.innerText.trim());
+
+    let tsv = conds.join('\n') + '\n\n'; // Blank line for separation
+
+    // Section: 표 헤더
+    const headers = [
+        '순번',
+        '지역',
+        '아파트명',
+        '평형',
+        '층',
+        '가격(억원)',
+        '평단가(만원)',
+        priceTypeSwitch.checked ? '거래일자' : '등록일자',
+        'URL'
+    ];
     tsv += headers.join('\t') + '\n';
+
+    // Section: 표 데이터
     const rows = Array.from(table.querySelectorAll('tbody tr[data-key]'));
     for (const row of rows) {
-
         const cells = Object.values(colFieldMap).map(field => row.dataset[field]);
+        // 가격(억원) 변환: 항상 소수점 2자리 ('#,###.00' 형식)
+        if (cells[5]) {
+            const price = Number(cells[5]);
+            if (!isNaN(price)) {
+                const priceEok = price / 10000;
+                // toLocaleString은 12.7 -> 12.70 보장
+                cells[5] = priceEok.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else {
+                cells[5] = '';
+            }
+        }
+        // 평단가(만원) 변환: 천단위 콤마, 소숫점 제거
+        if (cells[6]) {
+            const pricePer = Number(cells[6]);
+            cells[6] = pricePer ? Math.round(pricePer).toLocaleString('ko-KR') : '';
+        }
+        // URL 하이퍼링크
+        cells.push(row.dataset.complexNo ? `=HYPERLINK("https://new.land.naver.com/complexes/${row.dataset.complexNo}?a=JGC:JGB:ABYG:APT:PRE&e=RETAIL&ad=true", "네이버로보기")` : '');
         if (cells.length === headers.length) {
             tsv += cells.join('\t') + '\n';
         }
     }
+
     navigator.clipboard.writeText(tsv).then(() => {
-        alert('표가 클립보드에 복사되었습니다!');
+        alert('표가 Google Sheets에 맞게 클립보드에 복사되었습니다!');
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const copyBtn = document.getElementById('copyClipboardBtn');
     if (copyBtn) {
-        copyBtn.addEventListener('click', copyTableToClipboard);
+        copyBtn.addEventListener('click', copyToClipboardForGoogleSheet);
     }
     const resultsTable = document.getElementById('resultsTable');
     const origRenderResults = window.renderResults;
