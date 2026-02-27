@@ -114,7 +114,7 @@ function copyToClipboardForGoogleSheet() {
         '층',
         '가격(억원)',
         '평단가(만원)',
-        priceTypeSwitch.checked ? '거래일자' : '등록일자',
+        priceTypeSwitch.checked ? '등록일자' : '거래일자',
         'URL'
     ];
     tsv += headers.join('\t') + '\n';
@@ -791,6 +791,7 @@ async function getAskingPrices(complexNo, areaNo) {
                 data.articleList = data.articleList.concat(data2.articleList || []);
                 isMoreData = data2.isMoreData;
             }
+            console.log({ articleList: data.articleList });
 
             // 세부정보 얻기
             if (data.articleList && data.articleList.length > 0) {
@@ -805,9 +806,6 @@ async function getAskingPrices(complexNo, areaNo) {
                 }
             }
         }
-
-
-
         return data;
     } catch (err) {
         console.error('Failed to load asking prices:', err);
@@ -1114,10 +1112,10 @@ function renderResults(results) {
             <td class="${regionClass}">${result.region}</td>
             <td>${result.complexName}</td>
             <td>${result.pyeongName}평</td>
-            <td>${hasPrice ? result.floor + '층' : (result.noPrice ? '거래없음' : '-')}</td>
-            <td class="price-flex">${result.noPrice ? '<span class="no-price">거래없음</span>' : (hasPrice ? `<span class="badge-area">${nameBadge}</span><span class="price-value${result.isHighest ? ' price-highest' : ''}">${formatPrice(result.price)}</span>` : '<span class="price-loading">조회 중...</span>')}</td>
-            <td class="price-per-pyeong-cell">${hasPrice && pricePerPyeong ? pricePerPyeong : (result.noPrice ? '거래없음' : '-')}</td>
-            <td>${hasPrice ? result.date + dateBadge : (result.noPrice ? '거래없음' : '-')}</td>
+            <td>${hasPrice ? result.floor + '층' : '-'}</td>
+            <td class="price-flex"><span class="badge-area">${nameBadge}</span>${hasPrice ? `<span class="price-value${result.isHighest ? ' price-highest' : ''}">${formatPrice(result.price)}</span>` : '<span class="no-price">-</span>'}</td>
+            <td class="price-per-pyeong-cell">${hasPrice && pricePerPyeong ? pricePerPyeong : '-'}</td>
+            <td>${hasPrice ? result.date + dateBadge : '-'}</td>
         `;
         fragment.appendChild(row);
     });
@@ -1426,20 +1424,34 @@ async function searchRealEstate(resume = false) {
                     }
                 }
 
-                for (let i = 0; i < priceInfos.length; i++) {
-
-                    const priceInfo = priceInfos[i];
+                const resultInfos = [];
+                for (const priceInfo of priceInfos) {
 
                     // 가격 필터링 (억원)
                     const priceValue = priceInfo ? priceInfo.price : null;
-                    if (priceMin !== null && (priceValue === null || priceValue < priceMin * 10000)) continue;
-                    if (priceMax !== null && (priceValue === null || priceValue > priceMax * 10000)) continue;
+                    if (typeof priceMin === 'number' && typeof priceValue === 'number' && priceValue < priceMin * 10000) continue;
+                    if (typeof priceMax === 'number' && typeof priceValue === 'number' && priceValue > priceMax * 10000) continue;
                     // 층수 필터링
                     const floorValue = priceInfo ? parseInt(priceInfo.floor) : null;
-                    if (floorMin !== null && (floorValue === null || floorValue < floorMin)) continue;
-                    if (floorMax !== null && (floorValue === null || floorValue > floorMax)) continue;
+                    if (typeof floorMin === 'number' && typeof floorValue === 'number' && floorValue < floorMin) continue;
+                    if (typeof floorMax === 'number' && typeof floorValue === 'number' && floorValue > floorMax) continue;
 
-                    // 거래내역이 없어도 반드시 추가 (hasDeal이 false면 noPrice true)
+                    resultInfos.push(priceInfo);
+                }
+                if (resultInfos.length === 0) {
+
+                    resultInfos.push({
+
+                        price: null,
+                        floor: null,
+                        date: null,
+                        isHighest: false,
+                        isLowest: false
+                    });
+                }
+
+                for (const priceInfo of resultInfos) {
+
                     results.push({
                         region: item.region,
                         complexName: item.complexName,
