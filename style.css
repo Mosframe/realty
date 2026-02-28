@@ -227,7 +227,7 @@ h2 {
 
 .region {
     display: flex;
-    width: 40%;
+    width: 43%;
     align-items: center;
     gap: 8px;
 }
@@ -236,18 +236,22 @@ h2 {
     font-weight: 500;
     background: lightblue;
     font-size: 14px;
-    min-width: 60px;
+    width: 100%;
+    min-width: 50px;
     text-align: center;
     border: 1px solid gray;
+    min-height: 24px;
 }
 
 .region2-label {
     font-weight: 500;
     background: lightpink;
     font-size: 14px;
-    min-width: 60px;
+    width: 100%;
+    min-width: 50px;
     text-align: center;
     border: 1px solid gray;
+    min-height: 24px;
 }
 
 .form-group {
@@ -361,6 +365,14 @@ h2 {
     /* animation removed */
 }
 
+.results-titles {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0px;
+    margin-bottom: 5px;
+}
+
 /* keyframes spin removed */
 
 .error {
@@ -388,7 +400,7 @@ h2 {
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 0px;
 }
 
 .table thead {
@@ -665,9 +677,14 @@ h2 {
     filter: brightness(0.97);
 }
 
+.checkbox-label {
+    padding-top: 12px;
+}
+
 .controls+.controls .top-only-filter {
     margin-top: -6px;
     margin-bottom: 2px;
+    flex-direction: row;
 }
 
 .filter-row {

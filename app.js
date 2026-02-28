@@ -3,28 +3,30 @@ document.addEventListener('DOMContentLoaded', function () {
     const priceTypeSwitch = document.getElementById('priceTypeSwitch');
     if (priceTypeSwitch) {
         priceTypeSwitch.addEventListener('change', function () {
-            // 실거래가: false, 호가: true
-            const isAsking = priceTypeSwitch.checked;
-            document.querySelectorAll('.switch-label').forEach(label => {
+
+            const parent = priceTypeSwitch.parentElement.parentElement;
+
+            const checked = priceTypeSwitch.checked;
+            parent.querySelectorAll('.switch-label').forEach(label => {
                 label.style.fontWeight = '';
                 label.style.color = '#333';
                 label.style.fontSize = '13px';
             });
-            if (isAsking) {
-                document.querySelectorAll('.switch-label')[1].style.fontWeight = 'bold';
-                document.querySelectorAll('.switch-label')[1].style.color = '#2196f3';
+            if (checked) {
+                parent.querySelectorAll('.switch-label')[1].style.fontWeight = 'bold';
+                parent.querySelectorAll('.switch-label')[1].style.color = '#2196f3';
             } else {
-                document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
-                document.querySelectorAll('.switch-label')[0].style.color = 'green';
+                parent.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
+                parent.querySelectorAll('.switch-label')[0].style.color = 'green';
             }
             // TODO: 연동된 데이터 필터링 로직에 적용
-            if (isAsking) {
+            if (checked) {
 
                 document.querySelector('#title').innerHTML = '아파트 최저가 매물 조회';
                 document.querySelector('#dateFrom').disabled = true;
                 document.querySelector('#newBadgeDateInput').disabled = true;
-                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저 평단가만';
-                document.querySelector('#topOnly2Label').innerHTML = '평형별 최저 평단가만';
+                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저가만';
+                document.querySelector('#topOnly2Label').innerHTML = '평형별 최저가만';
                 document.querySelector('.results-title').innerHTML = '최저가 매물 목록';
                 document.querySelector('#col8 button').innerHTML = '등록일자';
             }
@@ -32,8 +34,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector('#title').innerHTML = '아파트 실거래가 조회';
                 document.querySelector('#dateFrom').disabled = false;
                 document.querySelector('#newBadgeDateInput').disabled = false;
-                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최고 평단가만';
-                document.querySelector('#topOnly2Label').innerHTML = '평형별 최고 평단가만';
+                document.querySelector('#topOnlyLabel').innerHTML = '단지별 최고가만';
+                document.querySelector('#topOnly2Label').innerHTML = '평형별 최고가만';
                 document.querySelector('.results-title').innerHTML = '실거래가 목록';
                 document.querySelector('#col8 button').innerHTML = '거래일자';
             }
@@ -44,6 +46,32 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.switch-label')[0].style.color = 'green';
         document.querySelectorAll('.switch-label')[0].style.fontSize = '13px';
         document.querySelectorAll('.switch-label')[1].style.fontSize = '13px';
+    }
+    const topOnlyTypeSwitch = document.getElementById('topOnlyTypeSwitch');
+    if (topOnlyTypeSwitch) {
+        topOnlyTypeSwitch.addEventListener('change', function () {
+
+            const parent = topOnlyTypeSwitch.parentElement.parentElement;
+
+            const checked = topOnlyTypeSwitch.checked;
+            parent.querySelectorAll('.switch-label').forEach(label => {
+                label.style.fontWeight = '';
+                label.style.color = '#333';
+                label.style.fontSize = '13px';
+            });
+            if (checked) {
+                parent.querySelectorAll('.switch-label')[1].style.fontWeight = 'bold';
+                parent.querySelectorAll('.switch-label')[1].style.color = '#2196f3';
+            } else {
+                parent.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
+                parent.querySelectorAll('.switch-label')[0].style.color = 'green';
+            }
+        });
+        // 초기 상태: 강조
+        topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
+        topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[0].style.color = 'green';
+        topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[0].style.fontSize = '13px';
+        topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[1].style.fontSize = '13px';
     }
 });
 const lastSort = { col: 1, dir: 1 };
@@ -84,15 +112,15 @@ function copyToClipboardForGoogleSheet() {
     const floorMax = floorMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
-    const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
-    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고 평단가만' : '';
+    const topOnly = topOnlyCheckbox.checked ? '단지별 최고가만' + (topOnlyTypeSwitch.checked ? ' (평단가)' : ' (거래가)') : '';
+    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고가만' + (topOnlyTypeSwitch.checked ? ' (평단가)' : ' (거래가)') : '';
 
     // Section: 검색 조건 정보
     const conds = [
         `▶ ${priceType} 조회 결과`,
         `조회일자\t${dateStr}`,
-        `지역1\t${sido} ${district} ${dong}`.trim(),
-        districtSelect2.selectedIndex > 0 ? `지역2\t${sido2} ${district2} ${dong2}`.trim() : '',
+        `${region1Input.value}\t${sido} ${district} ${dong}`.trim(),
+        districtSelect2.selectedIndex > 0 ? `${region2Input.value}\t${sido2} ${district2} ${dong2}`.trim() : '',
         `평형\t${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격\t${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층\t${floorMin || '-'} ~ ${floorMax || '-'}`,
@@ -240,14 +268,14 @@ function exportTableToExcel() {
     const floorMax = floorMaxInput.value;
     const dateFrom = dateFromInput.value;
     const dateTo = dateToInput.value;
-    const topOnly = topOnlyCheckbox.checked ? '단지별 최고 평단가만' : '';
-    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고 평단가만' : '';
+    const topOnly = topOnlyCheckbox.checked ? '단지별 최고가만' + (topOnlyTypeSwitch.checked ? ' (평단가)' : ' (거래가)') : '';
+    const topOnly2 = topOnly2Checkbox.checked ? '평형별 최고가만' + (topOnlyTypeSwitch.checked ? ' (평단가)' : ' (거래가)') : '';
     // 조건 행들 추가 (아래에서 위로 삽입)
     let insertAt = 0;
     const conds = [
         `조회일자: ${dateStr}`,
-        `지역1: ${sido} ${district} ${dong}`.trim(),
-        `지역2: ${sido2} ${district2} ${dong2}`.trim(),
+        `${region1Input.value}: ${sido} ${district} ${dong}`.trim(),
+        districtSelect2.selectedIndex > 0 ? `${region2Input.value}: ${sido2} ${district2} ${dong2}`.trim() : '',
         `평형: ${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격: ${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층: ${floorMin || '-'} ~ ${floorMax || '-'}`,
@@ -342,6 +370,8 @@ let currentCortarNo = null;
 // DOM Elements
 const region1 = document.getElementById('region1');
 const region2 = document.getElementById('region2');
+const region1Input = document.getElementById('region1Input');
+const region2Input = document.getElementById('region2Input');
 
 const sidoSelect = document.getElementById('sido');
 const districtSelect = document.getElementById('district');
@@ -376,6 +406,7 @@ function updateFilterDisabled() {
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
     topOnly2Checkbox.disabled = disabled;
+    topOnlyTypeSwitch.disabled = disabled;
     priceTypeSwitch.disabled = disabled;
 
     // 정렬 초기화
@@ -455,6 +486,7 @@ const dateFromInput = document.getElementById('dateFrom');
 const dateToInput = document.getElementById('dateTo');
 const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
 const topOnly2Checkbox = document.getElementById('topOnly2Checkbox');
+const topOnlyTypeSwitch = document.getElementById('topOnlyTypeSwitch');
 const naverLandBtn = document.getElementById('naverLandBtn');
 if (naverLandBtn) {
     naverLandBtn.addEventListener('click', () => {
@@ -621,7 +653,21 @@ async function onLogin() {
     const sidoVal = getSelectedValue(sidoSelect);
     if (sidoVal) await loadDistrict(districtSelect, dongSelect, sidoVal, DEFAULTS.district);
     const distVal = getSelectedValue(districtSelect);
-    if (distVal) await loadDong(dongSelect, distVal, DEFAULTS.dong);
+    if (distVal) {
+
+        await loadDong(dongSelect, distVal, DEFAULTS.dong);
+        const dongVal = getSelectedValue(dongSelect);
+        if (dongVal) {
+
+            const regionValue = dongSelect.options[dongSelect.selectedIndex].text.split(' ');
+            region1Input.value = regionValue[regionValue.length - 1] || '';
+        }
+        else {
+
+            const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
+            region1Input.value = regionValue[regionValue.length - 1] || '';
+        }
+    }
     await loadSido(sidoSelect2);
 }
 
@@ -729,7 +775,7 @@ async function loadDong(dongSelect, cortarNo, defaultValue) {
 // Load apartment complexes
 async function loadComplexes(cortarNo) {
     try {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 1));
         const data = await fetchAPI(`${API_BASE_URL}/regions/complexes?cortarNo=${cortarNo}&realEstateType=APT:PRE:ABYG:JGC&order=`);
         return data.complexList || [];
     } catch (err) {
@@ -741,7 +787,7 @@ async function loadComplexes(cortarNo) {
 // Get complex info including area list
 async function getComplexInfo(complexNo) {
     try {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 1));
         const data = await fetchAPI(`${API_BASE_URL}/complexes/${complexNo}?complexNo=${complexNo}&initial=Y`);
         return data;
     } catch (err) {
@@ -753,7 +799,7 @@ async function getComplexInfo(complexNo) {
 // Get real transaction prices
 async function getRealPrices(complexNo, areaNo, all) {
     try {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 1));
         const data = await fetchAPI(`${API_BASE_URL}/complexes/${complexNo}/prices/real?complexNo=${complexNo}&tradeType=A1&year=5&priceChartChange=false&areaNo=${areaNo}&type=table`);
         if (all) {
 
@@ -777,7 +823,7 @@ async function getRealPrices(complexNo, areaNo, all) {
 // 호가 조회
 async function getAskingPrices(complexNo, areaNo) {
     try {
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 1));
         const tradeType = 'A1'; // 매매
         const areaNos = areaNo; // 전체 평형
         const order = 'prc'; // 가격순
@@ -982,46 +1028,33 @@ const prevRanks = new Map();
 
 // 결과 테이블 렌더링
 function renderResults(results) {
-    // 가격 있는 항목은 평단가 기준 정렬, 미조회 항목은 뒤쪽
+
+    results.forEach(r => {
+        const pyeong = parseFloat(r.pyeongName);
+        r.per = (r.price && pyeong && !isNaN(pyeong)) ? topOnlyTypeSwitch.checked ? r.price / pyeong : r.price : 0;
+    });
+
     results.sort((a, b) => {
         if (a.price === null && b.price === null) return 0;
         if (a.price === null) return 1;
         if (b.price === null) return -1;
-        // 평단가 계산
-        const getPerPyeong = r => {
-            const pyeong = parseFloat(r.pyeongName);
-            if (!r.price || !pyeong || isNaN(pyeong)) return 0;
-            return r.price / pyeong;
-        };
-        return getPerPyeong(b) - getPerPyeong(a);
+        return b.per - a.per;
     });
 
-    // 각 row에 pricePerPyeong 필드 추가 (정렬용)
-    results.forEach(r => {
-        const pyeong = parseFloat(r.pyeongName);
-        r.pricePerPyeong = (r.price && pyeong && !isNaN(pyeong)) ? r.price / pyeong : null;
-    });
 
-    // 단지별 최고평단가만 필터링
+    // 단지별 최고가만 필터링
     let displayResults = results;
     if (topOnlyCheckbox.checked) {
-        const bestPerPyeong = new Map();
+
+        const bestPer = new Map();
         results.forEach(r => {
-            const pyeong = parseFloat(r.pyeongName);
-            // 거래가 있는 경우 평단가 기준, 없는 경우 noPrice 기준으로도 포함
-            if (r.price && pyeong && !isNaN(pyeong)) {
-                const per = r.price / pyeong;
-                if (!bestPerPyeong.has(r.complexName) || per > bestPerPyeong.get(r.complexName).per) {
-                    bestPerPyeong.set(r.complexName, { per, row: r });
-                }
-            } else if (r.noPrice) {
-                // 거래가 없는 단지/평형도 반드시 포함
-                if (!bestPerPyeong.has(r.complexName)) {
-                    bestPerPyeong.set(r.complexName, { per: -1, row: r });
-                }
+
+            if (!bestPer.has(r.complexName) || r.per > bestPer.get(r.complexName).per) {
+
+                bestPer.set(r.complexName, { per: r.per, row: r });
             }
         });
-        displayResults = Array.from(bestPerPyeong.values()).map(v => v.row);
+        displayResults = Array.from(bestPer.values()).map(v => v.row);
     }
 
     if (displayResults.length === 0) {
@@ -1115,7 +1148,7 @@ function renderResults(results) {
         }
         row.dataset.pricePer = pricePer;
         row.dataset.pricePerPyeong = pricePerPyeong;
-        const regionClass = result.region === '지역1' ? `region1-label` : `region2-label`;
+        const regionClass = result.region === region1Input.value ? `region1-label` : `region2-label`;
         row.innerHTML = `
             <td class="rank-cell">${hasPrice ? rank : '-'}</td>
             <td class="${regionClass}">${result.region}</td>
@@ -1356,7 +1389,7 @@ async function searchRealEstate(resume = false) {
                 for (const complex of allComplexes) {
                     if (searchAborted) break;
                     pendingItems.push({
-                        region: r === 0 ? "지역1" : "지역2",
+                        region: r === 0 ? region1Input.value : region2Input.value,
                         complexNo: complex.complexNo,
                         complexName: complex.complexName
                     });
@@ -1524,6 +1557,7 @@ sidoSelect.addEventListener('change', (e) => {
         dongSelect.disabled = true;
         searchBtn.disabled = true;
     }
+    region1Input.value = '지역1';
 });
 sidoSelect2.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
@@ -1536,15 +1570,19 @@ sidoSelect2.addEventListener('change', (e) => {
         dongSelect2.disabled = true;
         searchBtn.disabled = true;
     }
+    region2Input.value = '지역2';
 });
 districtSelect.addEventListener('change', (e) => {
     const cortarNo = e.target.value;
     if (cortarNo) {
         loadDong(dongSelect, cortarNo);
         currentCortarNo = cortarNo;
+        const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
+        region1Input.value = regionValue[regionValue.length - 1] || '';
         searchBtn.disabled = false;
     } else {
         dongSelect.innerHTML = '<option value="">동 선택</option>';
+        region1Input.value = '지역1';
         dongSelect.disabled = true;
         searchBtn.disabled = true;
     }
@@ -1554,9 +1592,12 @@ districtSelect2.addEventListener('change', (e) => {
     if (cortarNo) {
         loadDong(dongSelect2, cortarNo);
         currentCortarNo = cortarNo;
+        const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
+        region2Input.value = regionValue[regionValue.length - 1] || '';
         searchBtn.disabled = false;
     } else {
         dongSelect2.innerHTML = '<option value="">동 선택</option>';
+        region2Input.value = '지역2';
         dongSelect2.disabled = true;
         searchBtn.disabled = true;
     }
@@ -1564,15 +1605,23 @@ districtSelect2.addEventListener('change', (e) => {
 dongSelect.addEventListener('change', (e) => {
     if (e.target.value) {
         currentCortarNo = e.target.value;
+        const regionValue = dongSelect.options[dongSelect.selectedIndex].text.split(' ');
+        region1Input.value = regionValue[regionValue.length - 1] || '';
     } else {
         currentCortarNo = districtSelect.value;
+        const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
+        region1Input.value = regionValue[regionValue.length - 1] || '';
     }
 });
 dongSelect2.addEventListener('change', (e) => {
     if (e.target.value) {
         currentCortarNo = e.target.value;
+        const regionValue = dongSelect2.options[dongSelect2.selectedIndex].text.split(' ');
+        region2Input.value = regionValue[regionValue.length - 1] || '';
     } else {
         currentCortarNo = districtSelect2.value;
+        const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
+        region2Input.value = regionValue[regionValue.length - 1] || '';
     }
 });
 
@@ -1648,6 +1697,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
     topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
     topOnly2Checkbox.checked = true;
+    topOnlyTypeSwitch.checked = false;
 
     // Initialize search button state
     updateSearchBtn();
@@ -1665,6 +1715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dateToInput.addEventListener('input', onFilterChanged);
     topOnlyCheckbox.addEventListener('change', onFilterChanged);
     topOnly2Checkbox.addEventListener('change', onFilterChanged);
+    topOnlyTypeSwitch.addEventListener('change', onFilterChanged);
 
 });
 
