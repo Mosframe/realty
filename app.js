@@ -479,12 +479,13 @@ if (naverLandBtn) {
 (function setDefaultDateRange() {
 
     const today = new Date();
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(today.getMonth() - 3);
-
     // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
     const dateTo = today.toISOString().slice(0, 10);
-    const dateFrom = oneMonthAgo.toISOString().slice(0, 10);
+    // dateFrom : 이번달 1일
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const dateFrom = firstDayOfMonth.getFullYear() + '-' +
+        String(firstDayOfMonth.getMonth() + 1).padStart(2, '0') + '-' +
+        String(firstDayOfMonth.getDate()).padStart(2, '0');
 
     dateToInput.value = dateTo;
     dateFromInput.value = dateFrom;
@@ -825,6 +826,7 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
     let result = [];
     let highestPrice = null;
     let allTimeHighest = 0; // 전체 기간 최고가 (최고가 판별용)
+    let allTimeLowest = 10000000000; // 전체 기간 최저가 (최저가 판별용)
 
     // 1차: 전체 기간 최고가 계산
     priceData.realPriceOnMonthList.forEach(monthData => {
@@ -832,6 +834,9 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
             monthData.realPriceList.forEach(price => {
                 if (price.dealPrice > allTimeHighest) {
                     allTimeHighest = price.dealPrice;
+                }
+                if (price.dealPrice < allTimeLowest) {
+                    allTimeLowest = price.dealPrice;
                 }
             });
         }
@@ -855,7 +860,7 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
                                 floor: price.floor,
                                 date: price.formattedTradeYearMonth,
                                 isHighest: dealPrice >= allTimeHighest, // 전체 기간 대비 최고가 여부
-                                isLowest: false
+                                isLowest: dealPrice <= allTimeLowest // 전체 기간 대비 최저가 여부
                             }];
                         }
                     }
@@ -866,7 +871,7 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
                             floor: price.floor,
                             date: price.formattedTradeYearMonth,
                             isHighest: dealPrice >= allTimeHighest, // 전체 기간 대비 최고가 여부
-                            isLowest: false
+                            isLowest: dealPrice <= allTimeLowest // 전체 기간 대비 최저가 여부
                         });
                     }
                 }
@@ -1082,9 +1087,13 @@ function renderResults(results) {
                 dateBadge = ' <span class="badge-today">NEW</span>';
             }
             // 최고가: 같은 단지+평형 전체 기간 최고가
-            //if (result.isHighest) {
-            //    nameBadge = ' <span class="badge-new">최고가</span>';
-            //}
+            if (result.isHighest) {
+                nameBadge = ' <span class="badge-up">▲</span>';
+            }
+            else
+                if (result.isLowest) {
+                    nameBadge = ' <span class="badge-down">▼</span>';
+                }
         }
 
         // 평단가 계산 (price per pyeong)

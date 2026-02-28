@@ -746,6 +746,36 @@ h2 {
     z-index: 2;
 }
 
+.badge-up {
+    display: inline-block;
+    /* 연한 붉은색 */
+    color: #d32f2f;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px 1px 6px;
+    border-radius: 6px;
+    margin-right: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 2;
+}
+
+.badge-down {
+    display: inline-block;
+    /* 연한 파란색 */
+    color: #1976d2;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px 1px 6px;
+    border-radius: 6px;
+    margin-right: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 2;
+}
+
 /* 세부정보 패널 팝업 중앙 배치 */
 .detail-panel-overlay {
     position: fixed;
