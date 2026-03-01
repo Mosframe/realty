@@ -82,8 +82,9 @@ const colFieldMap = [
     'pyeongName',
     'floorValue',
     'price',
+    'priceChange',
     'pricePer',
-    'date'
+    'date',
 ];
 
 function copyToClipboardForGoogleSheet() {
@@ -141,16 +142,21 @@ function copyToClipboardForGoogleSheet() {
         '평형',
         '층',
         '가격(억원)',
+        '변화량',
         '평단가(만원)',
         priceTypeSwitch.checked ? '등록일자' : '거래일자',
-        'URL'
+        'URL',
+        'ID'
     ];
     tsv += headers.join('\t') + '\n';
 
     // Section: 표 데이터
     const rows = Array.from(table.querySelectorAll('tbody tr[data-key]'));
     for (const row of rows) {
+
         const cells = Object.values(colFieldMap).map(field => row.dataset[field]);
+        // 평형
+        if (cells[3]) cells[3] = cells[3] + '평'; // 평형에서 '평' 추가
         // 가격(억원) 변환: 항상 소수점 2자리 ('#,###.00' 형식)
         if (cells[5]) {
             const price = Number(cells[5]);
@@ -162,16 +168,28 @@ function copyToClipboardForGoogleSheet() {
                 cells[5] = '';
             }
         }
+
+        //const priceChange = cells[6]; 
+        //if (priceChange) {
+        //    cells[6] = priceChange.startsWith('▲') ? '▲ ' + priceChange.slice(1) : '▼ ' + priceChange.slice(1);
+        //}
+
         // 평단가(만원) 변환: 천단위 콤마, 소숫점 제거
-        if (cells[6]) {
-            const pricePer = Number(cells[6]);
-            cells[6] = pricePer ? Math.round(pricePer).toLocaleString('ko-KR') : '';
+        if (cells[7]) {
+            const pricePer = Number(cells[7]);
+            cells[7] = pricePer ? Math.round(pricePer).toLocaleString('ko-KR') : '';
         }
+
         // URL 하이퍼링크
         cells.push(row.dataset.complexNo ? `=HYPERLINK("https://new.land.naver.com/complexes/${row.dataset.complexNo}?a=JGC:JGB:ABYG:APT:PRE&e=RETAIL&ad=true", "네이버로보기")` : '');
+
+        // ID
+        cells.push(`${row.dataset.complexName}/${row.dataset.areaName}`);
+
         if (cells.length === headers.length) {
             tsv += cells.join('\t') + '\n';
         }
+
     }
 
     navigator.clipboard.writeText(tsv).then(() => {
@@ -237,6 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsTable.querySelector('tbody').appendChild(fragment);
         });
     }
+
+    // 오래된 로컬저장소 삭제
+    clearOldAskingPriceStorage(365);
 });
 // 엑셀 다운로드 기능 (SheetJS)
 function exportTableToExcel() {
@@ -402,7 +423,16 @@ function updateFilterDisabled() {
     priceMaxInput.disabled = disabled;
     floorMinInput.disabled = disabled;
     floorMaxInput.disabled = disabled;
-    dateFromInput.disabled = disabled;
+    if (priceTypeSwitch.checked) {
+
+        dateFromInput.disabled = true;
+        newBadgeDateInput.disabled = true;
+    }
+    else {
+
+        dateFromInput.disabled = disabled;
+        newBadgeDateInput.disabled = disabled;
+    }
     dateToInput.disabled = true;
     topOnlyCheckbox.disabled = disabled;
     topOnly2Checkbox.disabled = disabled;
@@ -437,11 +467,12 @@ function updateSearchBtn() {
     const excelBtn = document.getElementById('excelDownloadBtn');
     const copyBtn = document.getElementById('copyClipboardBtn');
     if (excelBtn) {
-        if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
-            excelBtn.style.display = '';
-        } else {
-            excelBtn.style.display = 'none';
-        }
+        excelBtn.style.display = 'none';
+        //if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
+        //    excelBtn.style.display = '';
+        //} else {
+        //    excelBtn.style.display = 'none';
+        //}
     }
     if (copyBtn) {
         if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
@@ -488,6 +519,8 @@ const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
 const topOnly2Checkbox = document.getElementById('topOnly2Checkbox');
 const topOnlyTypeSwitch = document.getElementById('topOnlyTypeSwitch');
 const naverLandBtn = document.getElementById('naverLandBtn');
+const newBadgeDateInput = document.getElementById('newBadgeDateInput');
+
 if (naverLandBtn) {
     naverLandBtn.addEventListener('click', () => {
         // 마지막으로 열린 상세정보의 complexNo, areaNo를 추적
@@ -513,11 +546,11 @@ if (naverLandBtn) {
     const today = new Date();
     // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
     const dateTo = today.toISOString().slice(0, 10);
-    // dateFrom : 이번달 1일
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const dateFrom = firstDayOfMonth.getFullYear() + '-' +
-        String(firstDayOfMonth.getMonth() + 1).padStart(2, '0') + '-' +
-        String(firstDayOfMonth.getDate()).padStart(2, '0');
+    // dateFrom : 30일 전
+    const prevDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+    const dateFrom = prevDay.getFullYear() + '-' +
+        String(prevDay.getMonth() + 1).padStart(2, '0') + '-' +
+        String(prevDay.getDate()).padStart(2, '0');
 
     dateToInput.value = dateTo;
     dateFromInput.value = dateFrom;
@@ -596,10 +629,16 @@ function formatPrice(price) {
     if (eok > 0 && man > 0) {
         return `${eok}억 ${man.toLocaleString()}만원`;
     } else if (eok > 0) {
-        return `${eok}억원`;
+        return `${eok}억 0,000만원`;
     } else {
         return `${man.toLocaleString()}만원`;
     }
+}
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function getRandomFloat(min, max) {
+    return Math.random() * (max - min) + min;
 }
 
 // Load 시도 (City/Province)
@@ -838,7 +877,7 @@ async function getAskingPrices(complexNo, areaNo) {
                 data.articleList = data.articleList.concat(data2.articleList || []);
                 isMoreData = data2.isMoreData;
             }
-            console.log({ articleList: data.articleList });
+            //console.log({ articleList: data.articleList });
 
             // 세부정보 얻기
             if (data.articleList && data.articleList.length > 0) {
@@ -1020,7 +1059,49 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
 
 // 결과 고유 키 생성
 function resultKey(r) {
-    return `${r.region}|${r.complexName}|${r.pyeongName}`;
+    return `${r.region}.${r.complexName}.${r.areaName}.${r.floor}`;
+}
+function askingPriceStorageKey(day, r) {
+    return `${day}.${r.complexNo}.${r.areaName}.askingPrice`;
+}
+function setStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+        console.error('Failed to set storage value:', e);
+    }
+}
+function getStorage(key) {
+
+    try {
+        return JSON.parse(localStorage.getItem(key));
+    } catch (e) {
+        return null;
+    }
+}
+function removeStorage(key) {
+    try {
+        localStorage.removeItem(key);
+    }
+    catch (e) {
+        console.error('Failed to remove storage value:', e);
+    }
+}
+function clearOldAskingPriceStorage(lifeDays = 365) {
+
+    const now = new Date();
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('20') && key.endsWith('.askingPrice')) {
+            const datePart = key.split('.')[0];
+            const keyDate = new Date(datePart);
+            if (isNaN(keyDate.getTime()) || (now - keyDate) > lifeDays * 24 * 60 * 60 * 1000) {
+                keysToRemove.push(key);
+            }
+        }
+    }
+    keysToRemove.forEach(key => removeStorage(key));
 }
 
 // 이전 순위 기록 (순위 변동 감지용)
@@ -1040,7 +1121,6 @@ function renderResults(results) {
         if (b.price === null) return -1;
         return b.per - a.per;
     });
-
 
     // 단지별 최고가만 필터링
     let displayResults = results;
@@ -1073,14 +1153,18 @@ function renderResults(results) {
     let rank = 0;
     const currentRanks = new Map(); // 이번 렌더의 순위
 
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const prevResultKey = yesterday.toISOString().slice(0, 10);
+
     // 새 행 생성
     const fragment = document.createDocumentFragment();
     displayResults.forEach((result, index) => {
         const key = resultKey(result);
         const row = document.createElement('tr');
         row.dataset.key = key;
-        if (result._complexNo) row.dataset.complexNo = result._complexNo;
-        if (result._areaNo) row.dataset.areaNo = result._areaNo;
+        if (result.complexNo) row.dataset.complexNo = result.complexNo;
+        if (result.areaNo) row.dataset.areaNo = result.areaNo;
         row.dataset.region = result.region || '';
         row.dataset.complexName = result.complexName || '';
         row.dataset.pyeongName = result.pyeongName || '';
@@ -1090,7 +1174,6 @@ function renderResults(results) {
         row.dataset.price = result.price !== null ? Number(result.price) : '';
         row.dataset.date = result.date || '';
         row.dataset.noPrice = result.noPrice ? 'true' : 'false';
-
 
         const hasPrice = result.price !== null;
         if (hasPrice) rank++;
@@ -1107,27 +1190,68 @@ function renderResults(results) {
 
         if (!hasPrice) row.classList.add('row-pending');
 
-        // 배지 판별
-        let nameBadge = ''; // 시세 옆: 최고가
+        const prevResult = priceTypeSwitch.checked ? getStorage(askingPriceStorageKey(prevResultKey, result)) : null;
+
+
         let dateBadge = '';  // 날짜 옆: NEW
-        if (hasPrice && result.date) {
-            let badgeBaseDate = new Date();
-            if (newBadgeDateInput && newBadgeDateInput.value) {
-                badgeBaseDate = new Date(newBadgeDateInput.value);
-            }
-            const tradeDate = new Date(result.date.replace(/\./g, '-'));
-            if (tradeDate >= badgeBaseDate) {
-                dateBadge = ' <span class="badge-today">NEW</span>';
-            }
-            // 최고가: 같은 단지+평형 전체 기간 최고가
-            if (result.isHighest) {
-                nameBadge = ' <span class="badge-up">▲</span>';
-            }
-            else
-                if (result.isLowest) {
-                    nameBadge = ' <span class="badge-down">▼</span>';
+        let bastBadge = ''; // 시세 옆: 최고가
+
+        // 배지 판별 (실거래가일때만)
+        if (priceTypeSwitch.checked) {
+
+            if (result.price) {
+
+                if (prevResult?.price) {
+
+                    const d = result.price - prevResult.price;
+                    if (d > 0) {
+                        row.dataset.priceChange = `▲ ${formatPrice(d)}`;
+                        bastBadge = ` <span class="badge-up">${row.dataset.priceChange}</span>`;
+                    }
+                    else if (d < 0) {
+                        row.dataset.priceChange = `▼ ${formatPrice(-d)}`;
+                        bastBadge = ` <span class="badge-down">${row.dataset.priceChange}</span>`;
+                    }
                 }
+                else {
+
+                    row.dataset.priceChange = 'NEW';
+                    bastBadge = ` <span class="badge-up">${row.dataset.priceChange}</span>`;
+                }
+            }
+            else {
+
+                if (prevResult?.price) {
+
+                    row.dataset.priceChange = '✖';
+                    bastBadge = ` <span class="badge-down">${row.dataset.priceChange}</span>`;
+                }
+            }
         }
+        else {
+
+            // 신규
+            if (hasPrice && result.date) {
+                let badgeBaseDate = new Date();
+                if (newBadgeDateInput && newBadgeDateInput.value) {
+                    badgeBaseDate = new Date(newBadgeDateInput.value);
+                }
+                const tradeDate = new Date(result.date.replace(/\./g, '-'));
+                if (tradeDate >= badgeBaseDate) {
+                    dateBadge = ' <span class="badge-today">NEW</span>';
+                }
+            }
+            // 최고가
+            if (result.isHighest) {
+                row.dataset.priceChange = '▲';
+                bastBadge = ` <span class="badge-up">${row.dataset.priceChange}</span>`;
+            }
+            else if (result.isLowest) {
+                row.dataset.priceChange = '▼';
+                bastBadge = ` <span class="badge-down">${row.dataset.priceChange}</span>`;
+            }
+        }
+
 
         // 평단가 계산 (price per pyeong)
         let pricePerPyeong = '';
@@ -1149,13 +1273,18 @@ function renderResults(results) {
         row.dataset.pricePer = pricePer;
         row.dataset.pricePerPyeong = pricePerPyeong;
         const regionClass = result.region === region1Input.value ? `region1-label` : `region2-label`;
+        const displayFloor = prevResult && result.floor !== prevResult.floor ? `<span class="floor-changed">${result.floor}층</span>` : `${result.floor}층`;
+        const displayPrice = prevResult && result.price !== prevResult.price ? `<span class="floor-changed">${formatPrice(result.price)}</span>` : `${formatPrice(result.price)}`;
+        //const displayFloor = `<span class="floor-changed">${result.floor}층</span>`;
+        //const displayPrice = getRandomInt(-1, 1) < 0 ? `<span class="price-down">${formatPrice(result.price)}</span>` : `<span class="price-up">${formatPrice(result.price)}</span>`;
+
         row.innerHTML = `
             <td class="rank-cell">${hasPrice ? rank : '-'}</td>
             <td class="${regionClass}">${result.region}</td>
             <td>${result.complexName}</td>
             <td>${result.pyeongName}평</td>
-            <td>${hasPrice ? result.floor + '층' : '-'}</td>
-            <td class="price-flex"><span class="badge-area">${nameBadge}</span>${hasPrice ? `<span class="price-value${result.isHighest ? ' price-highest' : ''}">${formatPrice(result.price)}</span>` : '<span class="no-price">-</span>'}</td>
+            <td>${hasPrice ? displayFloor : '-'}</td>
+            <td class="price-flex"><span class="badge-area">${bastBadge}</span>${hasPrice ? `<span class="price-value${result.isHighest ? ' price-highest' : ''}">${displayPrice}</span>` : '<span class="no-price">-</span>'}</td>
             <td class="price-per-pyeong-cell">${hasPrice && pricePerPyeong ? pricePerPyeong : '-'}</td>
             <td>${hasPrice ? result.date + dateBadge : '-'}</td>
         `;
@@ -1424,8 +1553,8 @@ async function searchRealEstate(resume = false) {
                     floor: null,
                     price: null,
                     date: null,
-                    _complexNo: item.complexNo,
-                    _areaNo: null,
+                    complexNo: item.complexNo,
+                    areaNo: null,
                     noPrice: true
                 });
                 renderResults(results);
@@ -1504,8 +1633,8 @@ async function searchRealEstate(resume = false) {
                         date: priceInfo ? priceInfo.date : null,
                         isHighest: priceInfo ? priceInfo.isHighest : false,
                         isLowest: priceInfo ? priceInfo.isLowest : false,
-                        _complexNo: item.complexNo,
-                        _areaNo: area.pyeongNo,
+                        complexNo: item.complexNo,
+                        areaNo: area.pyeongNo,
                         noPrice: hasDeal ? !priceInfo : true
                     });
                     renderResults(results);
@@ -1519,7 +1648,14 @@ async function searchRealEstate(resume = false) {
         if (results.length === 0) {
             resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 조건에 맞는 아파트가 없습니다.</td></tr>';
         } else {
+
             renderResults(results);
+
+            if (priceTypeSwitch.checked) {
+
+                const today = new Date().toISOString().slice(0, 10);
+                results.forEach(r => { setStorage(askingPriceStorageKey(today, r), r); });
+            }
         }
 
         if (searchAborted) {
@@ -1536,6 +1672,8 @@ async function searchRealEstate(resume = false) {
             resumeState.results = null;
             resumeState.itemIndex = 0;
         }
+
+
     } catch (err) {
         showError('데이터를 불러오는데 실패했습니다.');
         showSearchStatus('');
@@ -1643,11 +1781,11 @@ let DEFAULTS = {
     topOnly: false
 };
 
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
 
     // NEW 뱃지 기준일 기본값: dateTo의 1일 전
-    const newBadgeDateInput = document.getElementById('newBadgeDateInput');
     if (dateToInput && newBadgeDateInput) {
         let baseDate = null;
         if (dateToInput.value) {
