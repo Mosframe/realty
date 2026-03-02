@@ -1,5 +1,243 @@
-// iOS-style price type switch logic
+const API_BASE_URL = '/api';
+
+// DOM Elements
+
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+
+const region1 = document.getElementById('region1');
+const region2 = document.getElementById('region2');
+const region1Input = document.getElementById('region1Input');
+const region2Input = document.getElementById('region2Input');
+
+const sidoSelect = document.getElementById('sido');
+const districtSelect = document.getElementById('district');
+const dongSelect = document.getElementById('dong');
+const sidoSelect2 = document.getElementById('sido2');
+const districtSelect2 = document.getElementById('district2');
+const dongSelect2 = document.getElementById('dong2');
+const priceTypeSwitch = document.getElementById('priceTypeSwitch');
+
+const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
+const pyeongMinInput = document.getElementById('pyeongMin');
+const pyeongMaxInput = document.getElementById('pyeongMax');
+const priceMinInput = document.getElementById('priceMin');
+const priceMaxInput = document.getElementById('priceMax');
+const floorMinInput = document.getElementById('floorMin');
+const floorMaxInput = document.getElementById('floorMax');
+const dateFromInput = document.getElementById('dateFrom');
+const dateToInput = document.getElementById('dateTo');
+const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
+const topOnly2Checkbox = document.getElementById('topOnly2Checkbox');
+const topOnlyTypeSwitch = document.getElementById('topOnlyTypeSwitch');
+const newBadgeDateInput = document.getElementById('newBadgeDateInput');
+
+const searchBtn = document.getElementById('searchBtn');
+
+const naverLandBtn = document.getElementById('naverLandBtn');
+
+
+const lastSort = { col: 1, dir: 1 };
+
+// Default values (서버 config.txt에서 로드)
+let DEFAULTS = {
+    sido: '',
+    district: '',
+    dong: '',
+    pyeongMin: '',
+    pyeongMax: '',
+    priceMin: '',
+    priceMax: '',
+    floorMin: '',
+    floorMax: '',
+    dateFrom: '',
+    dateTo: '',
+    topOnly: false
+};
+const colFieldMap = [
+    'rank',
+    'region',
+    'complexName',
+    'pyeongName',
+    'floorChange',
+    'price',
+    'priceChange',
+    'pricePer',
+    'date',
+];
+var currentCortarNo = null; // State
+var searchState = 'idle'; // 'idle', 'searching'
+var searchAborted = false;
+
+// 초기화 (setup)
 document.addEventListener('DOMContentLoaded', function () {
+
+    setupEvents();
+    setupSwitches();
+    setupClipboardCopy();
+    //setupExcelDownload();
+    setupResultsSorting();
+    clearOldAskingPriceStorage(365);
+    showLoginModal();
+});
+// 초기화 (비동기)
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // NEW 뱃지 기준일 기본값: dateTo의 1일 전
+    if (dateToInput && newBadgeDateInput) {
+        let baseDate = null;
+        if (dateToInput.value) {
+            baseDate = new Date(dateToInput.value);
+        } else {
+            baseDate = new Date();
+        }
+
+        // 7일 전으로 설정
+        baseDate.setDate(baseDate.getDate() - 7);
+        baseDate.setHours(0, 0, 0, 0);
+        // yyyy-MM-dd 포맷
+        const yyyy = baseDate.getFullYear();
+        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(baseDate.getDate()).padStart(2, '0');
+        newBadgeDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 1초 지연
+    await new Promise(r => setTimeout(r, 100));
+
+    console.log("시작.....");
+
+    // 서버에서 기본값 로드
+    try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        if (data.defaults) {
+            DEFAULTS = { ...DEFAULTS, ...data.defaults };
+        }
+
+        const appVersion = document.getElementById('appVersion');
+        if (appVersion) appVersion.textContent = data.version;
+
+    } catch (e) { /* ignore */ }
+
+    console.log({ DEFAULTS });
+
+    // Set pyeong defaults
+    if (DEFAULTS.pyeongMin) pyeongMinInput.value = DEFAULTS.pyeongMin;
+    if (DEFAULTS.pyeongMax) pyeongMaxInput.value = DEFAULTS.pyeongMax;
+    if (DEFAULTS.priceMin) priceMinInput.value = DEFAULTS.priceMin;
+    if (DEFAULTS.priceMax) priceMaxInput.value = DEFAULTS.priceMax;
+    if (DEFAULTS.floorMin) floorMinInput.value = DEFAULTS.floorMin;
+    if (DEFAULTS.floorMax) floorMaxInput.value = DEFAULTS.floorMax;
+    if (DEFAULTS.dateFrom) dateFromInput.value = DEFAULTS.dateFrom;
+    if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
+    topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
+    topOnly2Checkbox.checked = true;
+    topOnlyTypeSwitch.checked = false;
+
+    // Initialize search button state
+    updateSearchBtn();
+
+});
+// 기본 이벤트
+function setupEvents() {
+
+    sidoSelect.addEventListener('change', (e) => {
+        const cortarNo = e.target.value;
+        if (cortarNo) {
+            loadDistrict(districtSelect, dongSelect, cortarNo);
+        } else {
+            districtSelect.innerHTML = '<option value="">시/군/구 선택</option>';
+            districtSelect.disabled = true;
+            dongSelect.innerHTML = '<option value="">동 선택</option>';
+            dongSelect.disabled = true;
+            searchBtn.disabled = true;
+        }
+        region1Input.value = '지역1';
+    });
+    sidoSelect2.addEventListener('change', (e) => {
+        const cortarNo = e.target.value;
+        if (cortarNo) {
+            loadDistrict(districtSelect2, dongSelect2, cortarNo);
+        } else {
+            districtSelect2.innerHTML = '<option value="">시/군/구 선택</option>';
+            districtSelect2.disabled = true;
+            dongSelect2.innerHTML = '<option value="">동 선택</option>';
+            dongSelect2.disabled = true;
+            searchBtn.disabled = true;
+        }
+        region2Input.value = '지역2';
+    });
+    districtSelect.addEventListener('change', (e) => {
+        const cortarNo = e.target.value;
+        if (cortarNo) {
+            loadDong(dongSelect, cortarNo);
+            currentCortarNo = cortarNo;
+            const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
+            region1Input.value = regionValue[regionValue.length - 1] || '';
+            searchBtn.disabled = false;
+        } else {
+            dongSelect.innerHTML = '<option value="">동 선택</option>';
+            region1Input.value = '지역1';
+            dongSelect.disabled = true;
+            searchBtn.disabled = true;
+        }
+    });
+    districtSelect2.addEventListener('change', (e) => {
+        const cortarNo = e.target.value;
+        if (cortarNo) {
+            loadDong(dongSelect2, cortarNo);
+            currentCortarNo = cortarNo;
+            const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
+            region2Input.value = regionValue[regionValue.length - 1] || '';
+            searchBtn.disabled = false;
+        } else {
+            dongSelect2.innerHTML = '<option value="">동 선택</option>';
+            region2Input.value = '지역2';
+            dongSelect2.disabled = true;
+            searchBtn.disabled = true;
+        }
+    });
+    dongSelect.addEventListener('change', (e) => {
+        if (e.target.value) {
+            currentCortarNo = e.target.value;
+            const regionValue = dongSelect.options[dongSelect.selectedIndex].text.split(' ');
+            region1Input.value = regionValue[regionValue.length - 1] || '';
+        } else {
+            currentCortarNo = districtSelect.value;
+            const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
+            region1Input.value = regionValue[regionValue.length - 1] || '';
+        }
+    });
+    dongSelect2.addEventListener('change', (e) => {
+        if (e.target.value) {
+            currentCortarNo = e.target.value;
+            const regionValue = dongSelect2.options[dongSelect2.selectedIndex].text.split(' ');
+            region2Input.value = regionValue[regionValue.length - 1] || '';
+        } else {
+            currentCortarNo = districtSelect2.value;
+            const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
+            region2Input.value = regionValue[regionValue.length - 1] || '';
+        }
+    });
+    // 조회버튼
+    searchBtn.addEventListener('click', async () => {
+
+        if (searchState === 'idle') {
+
+            searchState = 'searching';
+            updateSearchBtn();
+            await search();
+        }
+        else {
+
+            searchAborted = true;
+        }
+    });
+}
+// 스위치 로직
+function setupSwitches() {
+
     const priceTypeSwitch = document.getElementById('priceTypeSwitch');
     if (priceTypeSwitch) {
         priceTypeSwitch.addEventListener('change', function () {
@@ -73,20 +311,8 @@ document.addEventListener('DOMContentLoaded', function () {
         topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[0].style.fontSize = '13px';
         topOnlyTypeSwitch.parentElement.parentElement.querySelectorAll('.switch-label')[1].style.fontSize = '13px';
     }
-});
-const lastSort = { col: 1, dir: 1 };
-const colFieldMap = [
-    'rank',
-    'region',
-    'complexName',
-    'pyeongName',
-    'floorValue',
-    'price',
-    'priceChange',
-    'pricePer',
-    'date',
-];
-
+}
+// Google Sheets에 맞게 클립보드로 복사
 function copyToClipboardForGoogleSheet() {
     const table = document.getElementById('resultsTable');
     if (!table) return;
@@ -157,7 +383,6 @@ function copyToClipboardForGoogleSheet() {
         const cells = Object.values(colFieldMap).map(field => row.dataset[field]);
         // 평형
         if (cells[3]) cells[3] = cells[3] + '평'; // 평형에서 '평' 추가
-        // 가격(억원) 변환: 항상 소수점 2자리 ('#,###.00' 형식)
         if (cells[5]) {
             const price = Number(cells[5]);
             if (!isNaN(price)) {
@@ -196,12 +421,17 @@ function copyToClipboardForGoogleSheet() {
         alert('표가 Google Sheets에 맞게 클립보드에 복사되었습니다!');
     });
 }
+// 클립보드 복사 버튼 이벤트
+function setupClipboardCopy() {
 
-document.addEventListener('DOMContentLoaded', () => {
     const copyBtn = document.getElementById('copyClipboardBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', copyToClipboardForGoogleSheet);
     }
+}
+// 결과 테이블 정렬 이벤트
+function setupResultsSorting() {
+
     const resultsTable = document.getElementById('resultsTable');
     const origRenderResults = window.renderResults;
     window.renderResults = function (results) {
@@ -255,10 +485,14 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsTable.querySelector('tbody').appendChild(fragment);
         });
     }
-
-    // 오래된 로컬저장소 삭제
-    clearOldAskingPriceStorage(365);
-});
+}
+// 엑셀 다운로드 버튼 이벤트
+function setupExcelDownload() {
+    const excelBtn = document.getElementById('excelDownloadBtn');
+    if (excelBtn) {
+        excelBtn.addEventListener('click', exportTableToExcel);
+    }
+}
 // 엑셀 다운로드 기능 (SheetJS)
 function exportTableToExcel() {
     // SheetJS가 없으면 동적 로드
@@ -375,37 +609,40 @@ function exportTableToExcel() {
     XLSX.writeFile(wb, `실거래가_조회결과_${fileDate}.xlsx`);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const excelBtn = document.getElementById('excelDownloadBtn');
-    if (excelBtn) {
-        excelBtn.addEventListener('click', exportTableToExcel);
+// updateSearchBtn에서 옵션 활성/비활성도 같이 처리
+const _origUpdateSearchBtn = updateSearchBtn;
+updateSearchBtn = function () {
+    _origUpdateSearchBtn();
+    updateFilterDisabled();
+};
+function updateSearchBtn() {
+
+    if (searchState === 'idle') {
+        searchBtn.textContent = '조회';
     }
-});
-// API Configuration
-// Use local proxy server to avoid CORS issues
-const API_BASE_URL = '/api';
+    else {
+        searchBtn.textContent = '정지';
+    }
 
-// State
-let currentCortarNo = null;
-
-// DOM Elements
-const region1 = document.getElementById('region1');
-const region2 = document.getElementById('region2');
-const region1Input = document.getElementById('region1Input');
-const region2Input = document.getElementById('region2Input');
-
-const sidoSelect = document.getElementById('sido');
-const districtSelect = document.getElementById('district');
-const dongSelect = document.getElementById('dong');
-const sidoSelect2 = document.getElementById('sido2');
-const districtSelect2 = document.getElementById('district2');
-const dongSelect2 = document.getElementById('dong2');
-const priceTypeSwitch = document.getElementById('priceTypeSwitch');
-
-const searchBtn = document.getElementById('searchBtn');
-
-var searchState = 'idle'; // 'idle', 'searching', 'paused'
-
+    // 엑셀 다운로드 버튼 표시/숨김
+    const excelBtn = document.getElementById('excelDownloadBtn');
+    const copyBtn = document.getElementById('copyClipboardBtn');
+    if (excelBtn) {
+        excelBtn.style.display = 'none';
+        //if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
+        //    excelBtn.style.display = '';
+        //} else {
+        //    excelBtn.style.display = 'none';
+        //}
+    }
+    if (copyBtn) {
+        if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
+            copyBtn.style.display = '';
+        } else {
+            copyBtn.style.display = 'none';
+        }
+    }
+}
 // 조회중일 때 옵션 비활성화, 그 외엔 활성화
 function updateFilterDisabled() {
 
@@ -443,83 +680,6 @@ function updateFilterDisabled() {
     lastSort.col = 1;
     lastSort.dir = 1;
 }
-
-// updateSearchBtn에서 옵션 활성/비활성도 같이 처리
-const _origUpdateSearchBtn = updateSearchBtn;
-updateSearchBtn = function () {
-    _origUpdateSearchBtn();
-    updateFilterDisabled();
-};
-
-function updateSearchBtn() {
-    if (searchState === 'idle') {
-        searchBtn.textContent = '조회';
-        searchBtn.classList.remove('paused');
-    } else if (searchState === 'searching') {
-        searchBtn.textContent = '일시중지';
-        searchBtn.classList.remove('paused');
-    } else if (searchState === 'paused') {
-        searchBtn.textContent = '계속조회';
-        searchBtn.classList.add('paused');
-    }
-    searchBtn.disabled = false;
-    // 엑셀 다운로드 버튼 표시/숨김
-    const excelBtn = document.getElementById('excelDownloadBtn');
-    const copyBtn = document.getElementById('copyClipboardBtn');
-    if (excelBtn) {
-        excelBtn.style.display = 'none';
-        //if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
-        //    excelBtn.style.display = '';
-        //} else {
-        //    excelBtn.style.display = 'none';
-        //}
-    }
-    if (copyBtn) {
-        if (searchState === 'idle' && document.querySelector('tr[data-key]')) {
-            copyBtn.style.display = '';
-        } else {
-            copyBtn.style.display = 'none';
-        }
-    }
-}
-
-searchBtn.addEventListener('click', async () => {
-    if (searchState === 'idle') {
-        searchState = 'searching';
-        sidoSelect.disabled = true;
-        sidoSelect2.disabled = true;
-        updateSearchBtn();
-        await searchRealEstate();
-    } else if (searchState === 'searching') {
-        // Pause
-        searchAborted = true;
-        searchState = 'paused';
-        updateSearchBtn();
-    } else if (searchState === 'paused') {
-        // Resume
-        searchState = 'searching';
-        sidoSelect.disabled = true;
-        sidoSelect2.disabled = true;
-        updateSearchBtn();
-        await searchRealEstate(true); // resume
-    }
-});
-const loading = document.getElementById('loading');
-const error = document.getElementById('error');
-const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
-const pyeongMinInput = document.getElementById('pyeongMin');
-const pyeongMaxInput = document.getElementById('pyeongMax');
-const priceMinInput = document.getElementById('priceMin');
-const priceMaxInput = document.getElementById('priceMax');
-const floorMinInput = document.getElementById('floorMin');
-const floorMaxInput = document.getElementById('floorMax');
-const dateFromInput = document.getElementById('dateFrom');
-const dateToInput = document.getElementById('dateTo');
-const topOnlyCheckbox = document.getElementById('topOnlyCheckbox');
-const topOnly2Checkbox = document.getElementById('topOnly2Checkbox');
-const topOnlyTypeSwitch = document.getElementById('topOnlyTypeSwitch');
-const naverLandBtn = document.getElementById('naverLandBtn');
-const newBadgeDateInput = document.getElementById('newBadgeDateInput');
 
 if (naverLandBtn) {
     naverLandBtn.addEventListener('click', () => {
@@ -606,12 +766,10 @@ async function fetchAPI(url, retries = 3) {
         }
     }
 }
-
 // Show/Hide loading
 function showLoading(show) {
     loading.style.display = show ? 'block' : 'none';
 }
-
 // Show error message
 function showError(message) {
     error.textContent = message;
@@ -620,7 +778,6 @@ function showError(message) {
         error.style.display = 'none';
     }, 5000);
 }
-
 // Format price to Korean currency
 function formatPrice(price) {
     const eok = Math.floor(price / 10000);
@@ -640,9 +797,7 @@ function getRandomInt(min, max) {
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
-
 // Load 시도 (City/Province)
-// select에서 코드 또는 한글명으로 값 선택
 function selectByValueOrText(selectEl, val) {
     if (!val) return;
     // 코드로 매칭
@@ -657,12 +812,10 @@ function selectByValueOrText(selectEl, val) {
         }
     }
 }
-
 // 선택된 값 반환 (selectByValueOrText 후 사용)
 function getSelectedValue(selectEl) {
     return selectEl.value || '';
 }
-
 // SHA-256 해시 함수
 async function sha256Hex(str) {
     const encoder = new TextEncoder();
@@ -671,7 +824,6 @@ async function sha256Hex(str) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
 async function login(id, pw) {
 
     try {
@@ -685,7 +837,6 @@ async function login(id, pw) {
     }
     return false;
 }
-
 async function onLogin() {
 
     await loadSido(sidoSelect, DEFAULTS.sido);
@@ -709,7 +860,6 @@ async function onLogin() {
     }
     await loadSido(sidoSelect2);
 }
-
 async function loadSido(sidoSelect, defaultValue) {
 
     try {
@@ -740,7 +890,6 @@ async function loadSido(sidoSelect, defaultValue) {
         console.error(err);
     }
 }
-
 // Load 시/군/구 (District)
 async function loadDistrict(districtSelect, dongSelect, cortarNo, defaultValue) {
     try {
@@ -775,7 +924,6 @@ async function loadDistrict(districtSelect, dongSelect, cortarNo, defaultValue) 
         showLoading(false);
     }
 }
-
 // Load 동 (Neighborhood)
 async function loadDong(dongSelect, cortarNo, defaultValue) {
     try {
@@ -810,7 +958,6 @@ async function loadDong(dongSelect, cortarNo, defaultValue) {
         showLoading(false);
     }
 }
-
 // Load apartment complexes
 async function loadComplexes(cortarNo) {
     try {
@@ -822,7 +969,6 @@ async function loadComplexes(cortarNo) {
         return [];
     }
 }
-
 // Get complex info including area list
 async function getComplexInfo(complexNo) {
     try {
@@ -834,7 +980,6 @@ async function getComplexInfo(complexNo) {
         return null;
     }
 }
-
 // Get real transaction prices
 async function getRealPrices(complexNo, areaNo, all) {
     try {
@@ -898,10 +1043,7 @@ async function getAskingPrices(complexNo, areaNo) {
         return null;
     }
 }
-
-// Calculate current price (highest in date range)
-// Note: dealPrice from the API is in units of 만원 (10,000 won)
-// For example: dealPrice: 160000 means 160000만원 = 16억원
+// 실거래가 계산
 function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) {
 
     if (!priceData || !priceData.realPriceOnMonthList) {
@@ -966,6 +1108,7 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
 
     return result;
 }
+// 호가 계산
 function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax, isLowestOnly) {
 
     if (!askingPriceData || !askingPriceData.articleList) {
@@ -1056,7 +1199,6 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
     }
     return result;
 }
-
 // 결과 고유 키 생성
 function resultKey(r) {
     return `${r.region}.${r.complexName}.${r.areaName}.${r.floor}`;
@@ -1270,10 +1412,12 @@ function renderResults(results) {
                 }
             }
         }
+        const regionClass = result.region === region1Input.value ? `region1-label` : `region2-label`;
+        const floorText = result.floor ? `${result.floor.toString().padStart(2, '0')}층` : '-';
         row.dataset.pricePer = pricePer;
         row.dataset.pricePerPyeong = pricePerPyeong;
-        const regionClass = result.region === region1Input.value ? `region1-label` : `region2-label`;
-        const displayFloor = prevResult && result.floor !== prevResult.floor ? `<span class="floor-changed">${result.floor}층</span>` : `${result.floor}층`;
+        row.dataset.floorChange = prevResult && result.floor !== prevResult.floor ? `↕${floorText}` : floorText;
+        const displayFloor = prevResult && result.floor !== prevResult.floor ? `<span class="floor-changed">${floorText}</span>` : `${floorText}`;
         const displayPrice = prevResult && result.price !== prevResult.price ? `<span class="floor-changed">${formatPrice(result.price)}</span>` : `${formatPrice(result.price)}`;
         //const displayFloor = `<span class="floor-changed">${result.floor}층</span>`;
         //const displayPrice = getRandomInt(-1, 1) < 0 ? `<span class="price-down">${formatPrice(result.price)}</span>` : `<span class="price-up">${formatPrice(result.price)}</span>`;
@@ -1450,8 +1594,8 @@ function showSearchStatus(text) {
     searchStatus.textContent = text;
     searchStatus.style.display = text ? 'block' : 'none';
 }
-
-async function searchRealEstate(resume = false) {
+// 검색
+async function search(resume = false) {
 
     const searchCortarNo = dongSelect.value || districtSelect.value;
     if (!searchCortarNo) {
@@ -1461,85 +1605,61 @@ async function searchRealEstate(resume = false) {
 
     // 일시정지/계속조회 기능: 진행상태 저장
     try {
-        if (!window._searchResumeState) window._searchResumeState = {};
-        let resumeState = window._searchResumeState;
-        if (!resume) {
-            searchAborted = false;
-            resumeState.pendingItems = null;
-            resumeState.results = null;
-            resumeState.itemIndex = 0;
-        } else {
-            searchAborted = false;
-        }
-        searchBtn.disabled = true;
-
-        // 결과 즉시 초기화 (resume이면 기존 유지)
-        if (!resume) {
-            resultsTable.innerHTML = '';
-            prevRanks.clear();
-        }
-
         showSearchStatus('단지 목록 조회 중...');
 
         // ===== Phase 1: 단지 + 평형 목록만 빠르게 수집 =====
-        if (!resume || !resumeState.pendingItems) {
+        const pendingItems = [];
 
-            const pendingItems = [];
+        let allComplexes = [];
+        const len = sidoSelect2.value && districtSelect2.value ? 2 : 1;
+        for (let r = 0; r < len; ++r) {
 
-            let allComplexes = [];
-            const len = sidoSelect2.value && districtSelect2.value ? 2 : 1;
-            for (let r = 0; r < len; ++r) {
+            const doingValue = r === 0 ? dongSelect.value : dongSelect2.value;
+            if (doingValue) {
 
-                const doingValue = r === 0 ? dongSelect.value : dongSelect2.value;
-                if (doingValue) {
+                allComplexes = await loadComplexes(doingValue);
 
-                    allComplexes = await loadComplexes(doingValue);
+            } else {
 
-                } else {
-
-                    const districtSelectValue = r === 0 ? districtSelect.value : districtSelect2.value;
-                    const dongData = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${districtSelectValue}`);
-                    if (dongData.regionList && dongData.regionList.length > 0) {
-                        for (const dong of dongData.regionList) {
-                            if (searchAborted) break;
-                            showSearchStatus(`단지 목록 조회 중... (${dong.cortarName})`);
-                            const complexes = await loadComplexes(dong.cortarNo);
-                            allComplexes = allComplexes.concat(complexes);
-                        }
+                const districtSelectValue = r === 0 ? districtSelect.value : districtSelect2.value;
+                const dongData = await fetchAPI(`${API_BASE_URL}/regions/list?cortarNo=${districtSelectValue}`);
+                if (dongData.regionList && dongData.regionList.length > 0) {
+                    for (const dong of dongData.regionList) {
+                        if (searchAborted) throw new Error('Search aborted');
+                        showSearchStatus(`단지 목록 조회 중... (${dong.cortarName})`);
+                        const complexes = await loadComplexes(dong.cortarNo);
+                        allComplexes = allComplexes.concat(complexes);
                     }
                 }
-
-                if (allComplexes.length === 0) {
-                    resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 지역에 아파트 단지가 없습니다.</td></tr>';
-                    showSearchStatus('');
-                    return;
-                }
-                // 단지+평형 목록만
-                for (const complex of allComplexes) {
-                    if (searchAborted) break;
-                    pendingItems.push({
-                        region: r === 0 ? region1Input.value : region2Input.value,
-                        complexNo: complex.complexNo,
-                        complexName: complex.complexName
-                    });
-                }
             }
-            resumeState.pendingItems = pendingItems;
-            resumeState.results = [];
-            resumeState.itemIndex = 0;
+
+            if (allComplexes.length === 0) {
+                resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 지역에 아파트 단지가 없습니다.</td></tr>';
+                showSearchStatus('');
+                return;
+            }
+            // 단지+평형 목록만
+            for (const complex of allComplexes) {
+                if (searchAborted) throw new Error('Search aborted');
+                pendingItems.push({
+                    region: r === 0 ? region1Input.value : region2Input.value,
+                    complexNo: complex.complexNo,
+                    complexName: complex.complexName
+                });
+            }
         }
 
-        const pendingItems = resumeState.pendingItems;
-        let results = resumeState.results;
-        let itemCount = resumeState.itemIndex;
         const pyeongMin = pyeongMinInput.value ? parseInt(pyeongMinInput.value) : null;
         const pyeongMax = pyeongMaxInput.value ? parseInt(pyeongMaxInput.value) : null;
         const priceMin = priceMinInput.value ? parseFloat(priceMinInput.value) : null;
         const priceMax = priceMaxInput.value ? parseFloat(priceMaxInput.value) : null;
         const floorMin = floorMinInput.value ? parseInt(floorMinInput.value) : null;
         const floorMax = floorMaxInput.value ? parseInt(floorMaxInput.value) : null;
-        for (; itemCount < pendingItems.length; itemCount++) {
-            if (searchAborted) break;
+
+        let results = [];
+        for (let itemCount = 0; itemCount < pendingItems.length; itemCount++) {
+
+            if (searchAborted) throw new Error('Search aborted');
             const item = pendingItems[itemCount];
             showSearchStatus(`정보/시세 조회 중... ${itemCount + 1}/${pendingItems.length} (${item.complexName})`);
             // 단지 정보
@@ -1640,9 +1760,6 @@ async function searchRealEstate(resume = false) {
                     renderResults(results);
                 }
             }
-            // 진행상태 저장
-            resumeState.itemIndex = itemCount + 1;
-            resumeState.results = results;
         }
         // 최종 렌더링
         if (results.length === 0) {
@@ -1658,208 +1775,29 @@ async function searchRealEstate(resume = false) {
             }
         }
 
-        if (searchAborted) {
-            showSearchStatus('조회가 중지되었습니다.');
-            setTimeout(() => showSearchStatus(''), 2000);
-            searchState = 'paused';
-            updateSearchBtn();
-        } else {
-            showSearchStatus('');
-            searchState = 'idle';
-            updateSearchBtn();
-            // 완료 시 진행상태 초기화
-            resumeState.pendingItems = null;
-            resumeState.results = null;
-            resumeState.itemIndex = 0;
-        }
+        if (searchAborted) throw new Error('Search aborted');
 
-
-    } catch (err) {
-        showError('데이터를 불러오는데 실패했습니다.');
         showSearchStatus('');
         searchState = 'idle';
         updateSearchBtn();
-        console.error(err);
-    }
-}
 
-// Event Listeners
-sidoSelect.addEventListener('change', (e) => {
-    const cortarNo = e.target.value;
-    if (cortarNo) {
-        loadDistrict(districtSelect, dongSelect, cortarNo);
-    } else {
-        districtSelect.innerHTML = '<option value="">시/군/구 선택</option>';
-        districtSelect.disabled = true;
-        dongSelect.innerHTML = '<option value="">동 선택</option>';
-        dongSelect.disabled = true;
-        searchBtn.disabled = true;
-    }
-    region1Input.value = '지역1';
-});
-sidoSelect2.addEventListener('change', (e) => {
-    const cortarNo = e.target.value;
-    if (cortarNo) {
-        loadDistrict(districtSelect2, dongSelect2, cortarNo);
-    } else {
-        districtSelect2.innerHTML = '<option value="">시/군/구 선택</option>';
-        districtSelect2.disabled = true;
-        dongSelect2.innerHTML = '<option value="">동 선택</option>';
-        dongSelect2.disabled = true;
-        searchBtn.disabled = true;
-    }
-    region2Input.value = '지역2';
-});
-districtSelect.addEventListener('change', (e) => {
-    const cortarNo = e.target.value;
-    if (cortarNo) {
-        loadDong(dongSelect, cortarNo);
-        currentCortarNo = cortarNo;
-        const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
-        region1Input.value = regionValue[regionValue.length - 1] || '';
-        searchBtn.disabled = false;
-    } else {
-        dongSelect.innerHTML = '<option value="">동 선택</option>';
-        region1Input.value = '지역1';
-        dongSelect.disabled = true;
-        searchBtn.disabled = true;
-    }
-});
-districtSelect2.addEventListener('change', (e) => {
-    const cortarNo = e.target.value;
-    if (cortarNo) {
-        loadDong(dongSelect2, cortarNo);
-        currentCortarNo = cortarNo;
-        const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
-        region2Input.value = regionValue[regionValue.length - 1] || '';
-        searchBtn.disabled = false;
-    } else {
-        dongSelect2.innerHTML = '<option value="">동 선택</option>';
-        region2Input.value = '지역2';
-        dongSelect2.disabled = true;
-        searchBtn.disabled = true;
-    }
-});
-dongSelect.addEventListener('change', (e) => {
-    if (e.target.value) {
-        currentCortarNo = e.target.value;
-        const regionValue = dongSelect.options[dongSelect.selectedIndex].text.split(' ');
-        region1Input.value = regionValue[regionValue.length - 1] || '';
-    } else {
-        currentCortarNo = districtSelect.value;
-        const regionValue = districtSelect.options[districtSelect.selectedIndex].text.split(' ');
-        region1Input.value = regionValue[regionValue.length - 1] || '';
-    }
-});
-dongSelect2.addEventListener('change', (e) => {
-    if (e.target.value) {
-        currentCortarNo = e.target.value;
-        const regionValue = dongSelect2.options[dongSelect2.selectedIndex].text.split(' ');
-        region2Input.value = regionValue[regionValue.length - 1] || '';
-    } else {
-        currentCortarNo = districtSelect2.value;
-        const regionValue = districtSelect2.options[districtSelect2.selectedIndex].text.split(' ');
-        region2Input.value = regionValue[regionValue.length - 1] || '';
-    }
-});
+    } catch (err) {
 
-searchBtn.addEventListener('click', searchRealEstate);
-
-// Default values (서버 config.txt에서 로드)
-let DEFAULTS = {
-    sido: '',
-    district: '',
-    dong: '',
-    pyeongMin: '',
-    pyeongMax: '',
-    priceMin: '',
-    priceMax: '',
-    floorMin: '',
-    floorMax: '',
-    dateFrom: '',
-    dateTo: '',
-    topOnly: false
-};
-
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', async () => {
-
-    // NEW 뱃지 기준일 기본값: dateTo의 1일 전
-    if (dateToInput && newBadgeDateInput) {
-        let baseDate = null;
-        if (dateToInput.value) {
-            baseDate = new Date(dateToInput.value);
+        if (searchAborted) {
+            searchAborted = false;
+            showSearchStatus('조회가 중지되었습니다.');
+            setTimeout(() => showSearchStatus(''), 2000);
         } else {
-            baseDate = new Date();
+            console.error(err);
+            showError('데이터를 불러오는데 실패했습니다.');
+            showSearchStatus('');
         }
-
-        // 7일 전으로 설정
-        baseDate.setDate(baseDate.getDate() - 7);
-        baseDate.setHours(0, 0, 0, 0);
-        // yyyy-MM-dd 포맷
-        const yyyy = baseDate.getFullYear();
-        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(baseDate.getDate()).padStart(2, '0');
-        newBadgeDateInput.value = `${yyyy}-${mm}-${dd}`;
-    }
-
-    // 1초 지연
-    await new Promise(r => setTimeout(r, 100));
-
-    console.log("시작.....");
-
-    // 서버에서 기본값 로드
-    try {
-        const res = await fetch('/api/config');
-        const data = await res.json();
-        if (data.defaults) {
-            DEFAULTS = { ...DEFAULTS, ...data.defaults };
-        }
-
-        const appVersion = document.getElementById('appVersion');
-        if (appVersion) appVersion.textContent = data.version;
-
-    } catch (e) { /* ignore */ }
-
-    console.log({ DEFAULTS });
-
-    // Set pyeong defaults
-    if (DEFAULTS.pyeongMin) pyeongMinInput.value = DEFAULTS.pyeongMin;
-    if (DEFAULTS.pyeongMax) pyeongMaxInput.value = DEFAULTS.pyeongMax;
-    if (DEFAULTS.priceMin) priceMinInput.value = DEFAULTS.priceMin;
-    if (DEFAULTS.priceMax) priceMaxInput.value = DEFAULTS.priceMax;
-    if (DEFAULTS.floorMin) floorMinInput.value = DEFAULTS.floorMin;
-    if (DEFAULTS.floorMax) floorMaxInput.value = DEFAULTS.floorMax;
-    if (DEFAULTS.dateFrom) dateFromInput.value = DEFAULTS.dateFrom;
-    if (DEFAULTS.dateTo) dateToInput.value = DEFAULTS.dateTo;
-    topOnlyCheckbox.checked = DEFAULTS.topOnly === true || DEFAULTS.topOnly === 'true';
-    topOnly2Checkbox.checked = true;
-    topOnlyTypeSwitch.checked = false;
-
-    // Initialize search button state
-    updateSearchBtn();
-
-    // Add filter change event listeners
-    function onFilterChanged() {
         searchState = 'idle';
         updateSearchBtn();
     }
-    pyeongMinInput.addEventListener('input', onFilterChanged);
-    pyeongMaxInput.addEventListener('input', onFilterChanged);
-    floorMinInput.addEventListener('input', onFilterChanged);
-    floorMaxInput.addEventListener('input', onFilterChanged);
-    dateFromInput.addEventListener('input', onFilterChanged);
-    dateToInput.addEventListener('input', onFilterChanged);
-    topOnlyCheckbox.addEventListener('change', onFilterChanged);
-    topOnly2Checkbox.addEventListener('change', onFilterChanged);
-    topOnlyTypeSwitch.addEventListener('change', onFilterChanged);
+}
 
-});
-
-
-// ===== 세부정보 패널 드래그 이동 =====
-// ====== 풀스크린 로그인 모달 ======
+// 로그인창 오픈
 function showLoginModal() {
     // 이미 있으면 중복 생성 방지
     if (document.getElementById('loginModalOverlay')) return;
@@ -1876,15 +1814,15 @@ function showLoginModal() {
     overlay.style.alignItems = 'center';
     overlay.style.justifyContent = 'center';
     overlay.innerHTML = `
-        <div id="loginModalPanel" style="background:#fff; border-radius:16px; box-shadow:0 4px 32px rgba(0,0,0,0.2); padding:48px 36px 36px 36px; min-width:340px; min-height:320px; display:flex; flex-direction:column; align-items:center;">
-            <h2 style="margin-bottom:32px; color:#1976d2; font-size:2rem; font-weight:700; letter-spacing:-1px;">Login</h2>
-            <input id="loginUsername" type="text" placeholder="아이디" style="width:220px; margin-bottom:18px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" autofocus />
-            <input id="loginPassword" type="password" placeholder="비밀번호" style="width:220px; margin-bottom:24px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" />
-            <button id="loginBtn" style="width:220px; padding:12px 0; background:#1976d2; color:#fff; font-size:1.1rem; font-weight:600; border:none; border-radius:6px; cursor:pointer; transition:background 0.2s;">로그인</button>
-            <button id="signupBtn" style="width:220px; padding:12px 0; background:#fff; color:#1976d2; font-size:1.1rem; font-weight:600; border:1px solid #1976d2; border-radius:6px; cursor:pointer; margin-top:10px; transition:background 0.2s;">회원가입</button>
-            <div id="loginError" style="color:#d32f2f; margin-top:18px; min-height:24px; font-size:0.98rem; display:none;"></div>
-        </div>
-    `;
+    <div id="loginModalPanel" style="background:#fff; border-radius:16px; box-shadow:0 4px 32px rgba(0,0,0,0.2); padding:48px 36px 36px 36px; min-width:340px; min-height:320px; display:flex; flex-direction:column; align-items:center;">
+        <h2 style="margin-bottom:32px; color:#1976d2; font-size:2rem; font-weight:700; letter-spacing:-1px;">Login</h2>
+        <input id="loginUsername" type="text" placeholder="아이디" style="width:220px; margin-bottom:18px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" autofocus />
+        <input id="loginPassword" type="password" placeholder="비밀번호" style="width:220px; margin-bottom:24px; padding:10px 12px; font-size:1rem; border:1px solid #bbb; border-radius:6px; outline:none;" />
+        <button id="loginBtn" style="width:220px; padding:12px 0; background:#1976d2; color:#fff; font-size:1.1rem; font-weight:600; border:none; border-radius:6px; cursor:pointer; transition:background 0.2s;">로그인</button>
+        <button id="signupBtn" style="width:220px; padding:12px 0; background:#fff; color:#1976d2; font-size:1.1rem; font-weight:600; border:1px solid #1976d2; border-radius:6px; cursor:pointer; margin-top:10px; transition:background 0.2s;">회원가입</button>
+        <div id="loginError" style="color:#d32f2f; margin-top:18px; min-height:24px; font-size:0.98rem; display:none;"></div>
+    </div>
+`;
     // 회원가입 버튼 이벤트
     overlay.querySelector('#signupBtn').addEventListener('click', async function () {
         const username = overlay.querySelector('#loginUsername').value.trim();
@@ -1948,6 +1886,7 @@ function showLoginModal() {
     setTimeout(() => overlay.querySelector('#loginUsername').focus(), 100);
 }
 
+// ===== 세부정보 패널 드래그 이동 =====
 (function enableDetailPanelDrag() {
     const overlay = document.getElementById('detailPanelOverlay');
     const panel = document.getElementById('detailPanel');
@@ -2004,7 +1943,3 @@ function showLoginModal() {
     });
 })();
 
-// ====== 페이지 로드시 로그인 모달 표시 ======
-document.addEventListener('DOMContentLoaded', () => {
-    showLoginModal();
-});
