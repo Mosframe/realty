@@ -262,22 +262,26 @@ function setupSwitches() {
 
                 document.querySelector('#title').innerHTML = '아파트 최저가 매물 조회';
                 document.querySelector('#dateFrom').disabled = true;
+                document.querySelector('#dateTo').disabled = false;
                 document.querySelector('#newBadgeDateInput').disabled = true;
+                document.querySelector('#dateRangeLabel').innerHTML = '입주가능일자 범위';
                 document.querySelector('#topOnlyLabel').innerHTML = '단지별 최저가만';
                 document.querySelector('#topOnly2Label').innerHTML = '평형별 최저가만';
                 document.querySelector('.results-title').innerHTML = '최저가 매물 목록';
-                document.querySelector('#col8 button').innerHTML = '등록일자';
+                document.querySelector('#col8 button').innerHTML = '입주가능일자';
             }
             else {
                 document.querySelector('#title').innerHTML = '아파트 실거래가 조회';
                 document.querySelector('#dateFrom').disabled = false;
+                document.querySelector('#dateTo').disabled = true;
                 document.querySelector('#newBadgeDateInput').disabled = false;
+                document.querySelector('#dateRangeLabel').innerHTML = '거래일자 범위';
                 document.querySelector('#topOnlyLabel').innerHTML = '단지별 최고가만';
                 document.querySelector('#topOnly2Label').innerHTML = '평형별 최고가만';
                 document.querySelector('.results-title').innerHTML = '실거래가 목록';
                 document.querySelector('#col8 button').innerHTML = '거래일자';
             }
-
+            setupDateRanges();
         });
         // 초기 상태: 실거래가 강조
         document.querySelectorAll('.switch-label')[0].style.fontWeight = 'bold';
@@ -351,7 +355,7 @@ function copyToClipboardForGoogleSheet() {
         `평형\t${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격\t${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층\t${floorMin || '-'} ~ ${floorMax || '-'}`,
-        priceTypeSwitch.checked ? '' : `거래일자\t${dateFrom || '-'} ~ ${dateTo || '-'}`,
+        priceTypeSwitch.checked ? `입주일자\t${dateFrom || '-'} ~ ${dateTo || '-'}` : `거래일자\t${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly,
         topOnly2,
         `앱 다운로드\t=HYPERLINK("https://mosframe.github.io/realty/dist/realty.zip", "다운로드")\t아이디: 동탄\t비밀번호: 윤대장`
@@ -370,17 +374,20 @@ function copyToClipboardForGoogleSheet() {
         '가격(억원)',
         '변화량',
         '평단가(만원)',
-        priceTypeSwitch.checked ? '등록일자' : '거래일자',
+        priceTypeSwitch.checked ? '입주가능일자' : '거래일자',
         'URL',
         'ID'
     ];
     tsv += headers.join('\t') + '\n';
 
+    let order = 0;
     // Section: 표 데이터
     const rows = Array.from(table.querySelectorAll('tbody tr[data-key]'));
     for (const row of rows) {
 
         const cells = Object.values(colFieldMap).map(field => row.dataset[field]);
+        // 순번
+        cells[0] = ++order;
         // 평형
         if (cells[3]) cells[3] = cells[3] + '평'; // 평형에서 '평' 추가
         if (cells[5]) {
@@ -660,21 +667,23 @@ function updateFilterDisabled() {
     priceMaxInput.disabled = disabled;
     floorMinInput.disabled = disabled;
     floorMaxInput.disabled = disabled;
+    topOnlyCheckbox.disabled = disabled;
+    topOnly2Checkbox.disabled = disabled;
+    topOnlyTypeSwitch.disabled = disabled;
+    priceTypeSwitch.disabled = disabled;
+
     if (priceTypeSwitch.checked) {
 
         dateFromInput.disabled = true;
+        dateToInput.disabled = disabled;
         newBadgeDateInput.disabled = true;
     }
     else {
 
         dateFromInput.disabled = disabled;
+        dateToInput.disabled = true;
         newBadgeDateInput.disabled = disabled;
     }
-    dateToInput.disabled = true;
-    topOnlyCheckbox.disabled = disabled;
-    topOnly2Checkbox.disabled = disabled;
-    topOnlyTypeSwitch.disabled = disabled;
-    priceTypeSwitch.disabled = disabled;
 
     // 정렬 초기화
     lastSort.col = 1;
@@ -703,18 +712,36 @@ if (naverLandBtn) {
 // Set default date range (1 month ago ~ today)
 (function setDefaultDateRange() {
 
-    const today = new Date();
-    // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
-    const dateTo = today.toISOString().slice(0, 10);
-    // dateFrom : 30일 전
-    const prevDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
-    const dateFrom = prevDay.getFullYear() + '-' +
-        String(prevDay.getMonth() + 1).padStart(2, '0') + '-' +
-        String(prevDay.getDate()).padStart(2, '0');
-
-    dateToInput.value = dateTo;
-    dateFromInput.value = dateFrom;
+    setupDateRanges();
 })();
+
+function setupDateRanges() {
+
+    if (priceTypeSwitch.checked) {
+
+        const today = new Date();
+        // dateFrom: today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
+        const dateFrom = toLocalDate(today);
+        // dateTo : 약 6개월 후
+        const nextDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 180);
+        const dateTo = toLocalDate(nextDate);
+
+        dateFromInput.value = dateFrom;
+        dateToInput.value = dateTo;
+    }
+    else {
+
+        const today = new Date();
+        // dateFrom : 30일 전
+        const prevDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+        const dateFrom = toLocalDate(prevDate);
+        // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
+        const dateTo = toLocalDate(today);
+
+        dateFromInput.value = dateFrom;
+        dateToInput.value = dateTo;
+    }
+}
 
 // Helper function to make API calls with timeout and retry
 async function fetchAPI(url, retries = 3) {
@@ -778,17 +805,32 @@ function showError(message) {
         error.style.display = 'none';
     }, 5000);
 }
-// Format price to Korean currency
+
 function formatPrice(price) {
+
     const eok = Math.floor(price / 10000);
     const man = price % 10000;
 
-    if (eok > 0 && man > 0) {
-        return `${eok}억 ${man.toLocaleString()}만원`;
-    } else if (eok > 0) {
-        return `${eok}억 0,000만원`;
-    } else {
-        return `${man.toLocaleString()}만원`;
+    if (eok > 0) {
+
+        if (man > 0) {
+
+            return `${eok.toLocaleString()}억 ${man.toLocaleString()}만원`;
+        }
+        else {
+
+            return `${eok.toLocaleString()}억원`;
+        }
+    }
+    else {
+        if (man > 0) {
+
+            return `${man.toLocaleString()}만원`;
+        }
+        else {
+
+            return '';
+        }
     }
 }
 function getRandomInt(min, max) {
@@ -1109,30 +1151,27 @@ function calculateCurrentRealPrice(priceData, dateFrom, dateTo, isHightestOnly) 
     return result;
 }
 // 호가 계산
-function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorMax, isLowestOnly) {
+function calculateCurrentAskingPrice(askingPriceData, dateFrom, dateTo, areaName, floorMin, floorMax, isLowestOnly) {
 
     if (!askingPriceData || !askingPriceData.articleList) {
         return null;
     }
 
-    // 입주가능한 날짜가 6개월 이후이면 패스
-    const limitMonth = 6;
-    const now = new Date();
-    const maxDate = new Date(now.getFullYear(), now.getMonth() + limitMonth, now.getDate());
-
     const result = [];
     let minPrice = 100000000000; // 1000억 (최저가 판별용)
+    let maxFloor = 0; // 최저가 층 (최저가 판별용)
     for (const article of askingPriceData.articleList) {
 
         if (article.areaName !== areaName) continue;
 
-        // 즉시입주가 아니면 패스
-        if (!article.detail || article.detail.moveInPossibleYmd) {
+        const d = article.detail.moveInPossibleYmd;
+        if (!d) continue;
+        const moveDate = d !== 'NOW' ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : '즉시입주';
 
-            const d = article.detail.moveInPossibleYmd;
-            if (!d) continue;
-            const moveDate = new Date(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`);
-            if (moveDate > maxDate) continue;
+        // 입주가능일이아니면 패스
+        if (moveDate !== '즉시입주') {
+
+            if (new Date(moveDate) > dateTo) continue;
         }
 
         let floor = 0;
@@ -1172,15 +1211,16 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
         // 최저가 판별
         if (isLowestOnly) {
 
-            if (price < minPrice) {
+            if (price < minPrice || (price === minPrice && floor > maxFloor)) {
 
                 minPrice = price;
+                maxFloor = floor;
 
                 result.length = 0;
                 result.push({
                     price: price,
                     floor: floor,
-                    date: `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`,
+                    date: moveDate,
                     isHighest: false,
                     isLowest: true
                 });
@@ -1191,7 +1231,7 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
             result.push({
                 price: price,
                 floor: floor,
-                date: `${article.articleConfirmYmd.slice(0, 4)}-${article.articleConfirmYmd.slice(4, 6)}-${article.articleConfirmYmd.slice(6, 8)}`,
+                date: moveDate,
                 isHighest: false,
                 isLowest: true
             });
@@ -1199,6 +1239,16 @@ function calculateCurrentAskingPrice(askingPriceData, areaName, floorMin, floorM
     }
     return result;
 }
+
+function toLocalDate(date) {
+
+    const pad = (num) => String(num).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    return `${year}-${month}-${day}`;
+}
+
 // 결과 고유 키 생성
 function resultKey(r) {
     return `${r.region}.${r.complexName}.${r.areaName}.${r.floor}`;
@@ -1292,12 +1342,14 @@ function renderResults(results) {
     });
 
     // 순위 계산 (가격 있는 것만)
+    let order = 0;
     let rank = 0;
     const currentRanks = new Map(); // 이번 렌더의 순위
 
+    // yesterday : 하루전날 구하기
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const prevResultKey = yesterday.toISOString().slice(0, 10);
+    const prevResultKey = toLocalDate(yesterday);
 
     // 새 행 생성
     const fragment = document.createDocumentFragment();
@@ -1319,6 +1371,7 @@ function renderResults(results) {
 
         const hasPrice = result.price !== null;
         if (hasPrice) rank++;
+        ++order;
 
         // 순위 기록
         if (hasPrice) currentRanks.set(key, rank);
@@ -1412,18 +1465,32 @@ function renderResults(results) {
                 }
             }
         }
+
+        // 매물이 삭제됬으면 어제값으로 설정
+        if (row.dataset.priceChange === '✖') {
+
+            result.price = row.dataset.price = prevResult.price;
+            result.floor = row.dataset.floor = prevResult.floor;
+            pricePer = row.dataset.pricePer = prevResult.pricePer;
+            pricePerPyeong = row.dataset.pricePerPyeong = prevResult.pricePerPyeong;
+            result.date = row.dataset.date = prevResult.date;
+        }
+
+
         const regionClass = result.region === region1Input.value ? `region1-label` : `region2-label`;
         const floorText = result.floor ? `${result.floor.toString().padStart(2, '0')}층` : '-';
         row.dataset.pricePer = pricePer;
         row.dataset.pricePerPyeong = pricePerPyeong;
         row.dataset.floorChange = prevResult && result.floor !== prevResult.floor ? `↕${floorText}` : floorText;
         const displayFloor = prevResult && result.floor !== prevResult.floor ? `<span class="floor-changed">${floorText}</span>` : `${floorText}`;
-        const displayPrice = prevResult && result.price !== prevResult.price ? `<span class="floor-changed">${formatPrice(result.price)}</span>` : `${formatPrice(result.price)}`;
-        //const displayFloor = `<span class="floor-changed">${result.floor}층</span>`;
-        //const displayPrice = getRandomInt(-1, 1) < 0 ? `<span class="price-down">${formatPrice(result.price)}</span>` : `<span class="price-up">${formatPrice(result.price)}</span>`;
+        const displayPrice = prevResult && result.price !== prevResult.price
+            ? result.price > prevResult.price
+                ? `<span class="price-up">${formatPrice(result.price)}</span>`
+                : `<span class="price-down">${formatPrice(result.price)}</span>`
+            : formatPrice(result.price);
 
         row.innerHTML = `
-            <td class="rank-cell">${hasPrice ? rank : '-'}</td>
+            <td class="rank-cell">${order}</td>
             <td class="${regionClass}">${result.region}</td>
             <td>${result.complexName}</td>
             <td>${result.pyeongName}평</td>
@@ -1595,7 +1662,7 @@ function showSearchStatus(text) {
     searchStatus.style.display = text ? 'block' : 'none';
 }
 // 검색
-async function search(resume = false) {
+async function search() {
 
     const searchCortarNo = dongSelect.value || districtSelect.value;
     if (!searchCortarNo) {
@@ -1695,9 +1762,11 @@ async function search(resume = false) {
                 let priceInfos = null;
                 let hasDeal = false;
                 if (priceData) {
+                    const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
+                    const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
                     if (isAskingPrice) {
 
-                        priceInfos = calculateCurrentAskingPrice(priceData, areaName, floorMin, floorMax, topOnly2Checkbox.checked);
+                        priceInfos = calculateCurrentAskingPrice(priceData, dateFrom, dateTo, areaName, floorMin, floorMax, topOnly2Checkbox.checked);
                         // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
                         if (priceData.articleList && priceData.articleList.length > 0) {
                             hasDeal = true;
@@ -1705,8 +1774,6 @@ async function search(resume = false) {
                     }
                     else {
 
-                        const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
-                        const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
                         priceInfos = calculateCurrentRealPrice(priceData, dateFrom, dateTo, topOnly2Checkbox.checked);
                         // 거래내역이 전체 기간 중 하나라도 있으면 hasDeal true (날짜 범위와 무관)
                         if (priceData.realPriceOnMonthList && priceData.realPriceOnMonthList.some(m => m.realPriceList && m.realPriceList.length > 0)) {
@@ -1765,17 +1832,16 @@ async function search(resume = false) {
         if (results.length === 0) {
             resultsTable.innerHTML = '<tr><td colspan="6" class="no-data">해당 조건에 맞는 아파트가 없습니다.</td></tr>';
         } else {
-
             renderResults(results);
-
-            if (priceTypeSwitch.checked) {
-
-                const today = new Date().toISOString().slice(0, 10);
-                results.forEach(r => { setStorage(askingPriceStorageKey(today, r), r); });
-            }
         }
 
         if (searchAborted) throw new Error('Search aborted');
+
+        if (priceTypeSwitch.checked) {
+
+            const today = toLocalDate(new Date());
+            results.forEach(r => { setStorage(askingPriceStorageKey(today, r), r); });
+        }
 
         showSearchStatus('');
         searchState = 'idle';
