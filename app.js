@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupClipboardCopy();
     //setupExcelDownload();
     setupResultsSorting();
-    clearOldAskingPriceStorage(365);
+    clearOldAskingPriceStorage(7);
     showLoginModal();
 });
 // 초기화 (비동기)
@@ -355,10 +355,10 @@ function copyToClipboardForGoogleSheet() {
         `평형\t${pyeongMin || '-'} ~ ${pyeongMax || '-'}평`,
         `가격\t${priceMin || '-'} ~ ${priceMax || '-'}억원`,
         `층\t${floorMin || '-'} ~ ${floorMax || '-'}`,
-        priceTypeSwitch.checked ? `입주일자\t${dateFrom || '-'} ~ ${dateTo || '-'}` : `거래일자\t${dateFrom || '-'} ~ ${dateTo || '-'}`,
+        priceTypeSwitch.checked ? `입주일자\t${dateFrom || '-'} ~ ${dateTo || '-'}\t\t(6개월내 입주가능한 매물만)` : `거래일자\t${dateFrom || '-'} ~ ${dateTo || '-'}`,
         topOnly,
         topOnly2,
-        `앱 다운로드\t=HYPERLINK("https://mosframe.github.io/realty/dist/realty.zip", "다운로드")\t아이디: 동탄\t비밀번호: 윤대장`
+        ' ' //`앱 다운로드\t=HYPERLINK("https://mosframe.github.io/realty/dist/realty.zip", "다운로드")\t아이디: 동탄\t비밀번호: 윤대장`
 
     ].filter(Boolean);
 
@@ -732,8 +732,8 @@ function setupDateRanges() {
     else {
 
         const today = new Date();
-        // dateFrom : 30일 전
-        const prevDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+        // dateFrom : 90일 전
+        const prevDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90);
         const dateFrom = toLocalDate(prevDate);
         // dateTo : today를 yyyy-MM-dd 형식으로 변환 (로컬시간으로)
         const dateTo = toLocalDate(today);
@@ -1279,7 +1279,7 @@ function removeStorage(key) {
         console.error('Failed to remove storage value:', e);
     }
 }
-function clearOldAskingPriceStorage(lifeDays = 365) {
+function clearOldAskingPriceStorage(lifeDays = 7) {
 
     const now = new Date();
     const keysToRemove = [];
