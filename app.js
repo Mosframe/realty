@@ -371,12 +371,13 @@ function copyToClipboardForGoogleSheet() {
         '아파트명',
         '평형',
         '층',
-        '가격(억원)',
+        '가격',
         '변화량',
         '평단가(만원)',
         priceTypeSwitch.checked ? '입주가능일자' : '거래일자',
         'URL',
-        'ID'
+        '아파트명(정렬)',
+        '가격(정렬)'
     ];
     tsv += headers.join('\t') + '\n';
 
@@ -390,15 +391,11 @@ function copyToClipboardForGoogleSheet() {
         cells[0] = ++order;
         // 평형
         if (cells[3]) cells[3] = cells[3] + '평'; // 평형에서 '평' 추가
-        if (cells[5]) {
-            const price = Number(cells[5]);
-            if (!isNaN(price)) {
-                const priceEok = price / 10000;
-                // toLocaleString은 12.7 -> 12.70 보장
-                cells[5] = priceEok.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            } else {
-                cells[5] = '';
-            }
+        // 가격
+        const price = cells[5];
+        if (price) {
+
+            cells[5] = formatPrice(price);
         }
 
         //const priceChange = cells[6]; 
@@ -415,8 +412,16 @@ function copyToClipboardForGoogleSheet() {
         // URL 하이퍼링크
         cells.push(row.dataset.complexNo ? `=HYPERLINK("https://new.land.naver.com/complexes/${row.dataset.complexNo}?a=JGC:JGB:ABYG:APT:PRE&e=RETAIL&ad=true", "네이버로보기")` : '');
 
-        // ID
+        // 아파트명(정렬)
         cells.push(`${row.dataset.complexName}/${row.dataset.areaName}`);
+        // 가격(정렬)
+        if (price) {
+            const price2 = Number(price);
+            const n1 = Math.floor(price2 / 10000);
+            const n2 = price2 % 10000;
+            const p = (n1 > 0 ? String(n1).slice(0, 2).padStart(2, '0') : '00') + '.' + (n2 > 0 ? String(n2).slice(0, 2).padStart(2, '0') : '00');
+            cells.push(p);
+        }
 
         if (cells.length === headers.length) {
             tsv += cells.join('\t') + '\n';
@@ -1677,10 +1682,10 @@ async function search() {
         // ===== Phase 1: 단지 + 평형 목록만 빠르게 수집 =====
         const pendingItems = [];
 
-        let allComplexes = [];
         const len = sidoSelect2.value && districtSelect2.value ? 2 : 1;
         for (let r = 0; r < len; ++r) {
 
+            let allComplexes = [];
             const doingValue = r === 0 ? dongSelect.value : dongSelect2.value;
             if (doingValue) {
 
